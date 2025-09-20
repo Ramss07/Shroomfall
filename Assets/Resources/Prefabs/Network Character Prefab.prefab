@@ -320,6 +320,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAppearanceNet
   avatar: {fileID: 6081930473355302252}
+  _EyeIndex: 0
+  _MouthIndex: 0
+  _BodyRGBA: 0
+  _CapRGBA: 0
 --- !u!1 &5161597256027557516
 GameObject:
   m_ObjectHideFlags: 0
@@ -466,6 +470,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -2453550708452717748, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5764081990226523497}
+    - targetCorrespondingSourceObject: {fileID: -2453550708452717748, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2824104920701628684}
     - targetCorrespondingSourceObject: {fileID: 9088872756827976528, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1538700060563345243}
@@ -490,6 +497,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3897462237488877691, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 285127558133649695}
+    - targetCorrespondingSourceObject: {fileID: 3897462237488877691, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6671977823042694734}
+    - targetCorrespondingSourceObject: {fileID: 3897462237488877691, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8591951768082924616}
     - targetCorrespondingSourceObject: {fileID: -3638193520734090830, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7011259993669700044}
@@ -661,7 +674,7 @@ ConfigurableJoint:
   m_SlerpDrive:
     serializedVersion: 4
     positionSpring: 100
-    positionDamper: 0
+    positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_ProjectionMode: 0
@@ -878,6 +891,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SyncPhysicsObject
   animatedRigidbody3D: {fileID: 8589794226289532357}
   syncAnimation: 0
+--- !u!114 &6671977823042694734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4198840918585555430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad174ac2fb6821d40bfbf68632247c8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DetectCollision
+--- !u!65 &8591951768082924616
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4198840918585555430}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.5436046, y: 1.4287444, z: 3.2593796}
+  m_Center: {x: -0.068330094, y: 1.1766481, z: -0.024280615}
 --- !u!1 &4742673673979748399 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -3638193520734090830, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
@@ -1021,7 +1067,7 @@ ConfigurableJoint:
   m_SlerpDrive:
     serializedVersion: 4
     positionSpring: 80
-    positionDamper: 0
+    positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_ProjectionMode: 0
@@ -1192,7 +1238,7 @@ ConfigurableJoint:
   m_SlerpDrive:
     serializedVersion: 4
     positionSpring: 1000
-    positionDamper: 0
+    positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_ProjectionMode: 0
@@ -1220,6 +1266,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SyncPhysicsObjects
   animatedRigidbody3D: {fileID: 1518760729911124396}
   syncAnimation: 0
+--- !u!114 &2824104920701628684
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5881958887147971281}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad174ac2fb6821d40bfbf68632247c8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DetectCollision
 --- !u!1 &6121096624039355075 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6386480451222621022, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
@@ -1363,7 +1421,7 @@ ConfigurableJoint:
   m_SlerpDrive:
     serializedVersion: 4
     positionSpring: 100
-    positionDamper: 0
+    positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_ProjectionMode: 0
@@ -1549,7 +1607,7 @@ ConfigurableJoint:
   m_SlerpDrive:
     serializedVersion: 4
     positionSpring: 80
-    positionDamper: 0
+    positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0
   m_ProjectionMode: 0

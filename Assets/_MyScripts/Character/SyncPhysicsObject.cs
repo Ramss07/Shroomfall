@@ -16,13 +16,17 @@ public class SyncPhysicsObject : MonoBehaviour
     //Keep track for starting rotation
     Quaternion startLocalRotation;
 
+    float startSlerpPositionSpring = 0.0f;
+
     void Awake()
     {
         rigidbody3D = GetComponent<Rigidbody>();
         joint = GetComponent<ConfigurableJoint>();
 
-        //Store the starting local rotation
+        //Store the starting values
         startLocalRotation = transform.localRotation;
+        startSlerpPositionSpring = joint.slerpDrive.positionSpring;
+
     }
 
     public void UpdateJointFromAnimation()
@@ -31,5 +35,19 @@ public class SyncPhysicsObject : MonoBehaviour
             return;
 
         ConfigurableJointExtensions.SetTargetRotationLocal(joint, animatedRigidbody3D.transform.localRotation, startLocalRotation);
+    }
+
+    public void MakeRagdoll()
+    {
+        JointDrive jointDrive = joint.slerpDrive;
+        jointDrive.positionSpring = 1;
+        joint.slerpDrive = jointDrive;
+    }
+
+    public void MakeActiveRagdoll()
+    {
+        JointDrive jointDrive = joint.slerpDrive;
+        jointDrive.positionSpring = startSlerpPositionSpring;
+        joint.slerpDrive = jointDrive;
     }
 }

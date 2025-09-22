@@ -12,8 +12,7 @@ public class DungeonCreator : MonoBehaviour
 
     [Header("Prefabs/Material")]
     public GameObject floorPrefab;
-    public GameObject wallHorizontal;   // 1-cell long, pivot centered, points along +X
-    public GameObject wallVertical;     // same mesh/orientation as horizontal is fine; we rotate it 90° Y
+    public GameObject wallPrefab;   // 1-cell long, pivot centered, points along +X
     public GameObject doorPrefab;       // 1-cell long along local X; will be stretched
     public Material material;
 
@@ -171,14 +170,14 @@ public class DungeonCreator : MonoBehaviour
                 float worldX = (e.x + 0.5f) * cellSize;
                 float worldZ = (e.z) * cellSize; // lies on gridline z
                 var pos = new Vector3(worldX, yOffset, worldZ);
-                Instantiate(wallHorizontal, pos, Quaternion.identity, wallsParent);
+                Instantiate(wallPrefab, pos, Quaternion.identity, wallsParent);
             }
             else
             {
                 float worldX = (e.x) * cellSize; // gridline x
                 float worldZ = (e.z + 0.5f) * cellSize;
                 var pos = new Vector3(worldX, yOffset, worldZ);
-                Instantiate(wallVertical, pos, Quaternion.Euler(0f, 90f, 0f), wallsParent);
+                Instantiate(wallPrefab, pos, Quaternion.Euler(0f, 90f, 0f), wallsParent);
             }
         }
     }

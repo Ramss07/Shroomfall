@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class ShroomCustomizerMPB : MonoBehaviour
 {
+
+
     [Header("Renderers")]
     public Renderer body;
     public Renderer cap;
@@ -17,7 +19,7 @@ public class ShroomCustomizerMPB : MonoBehaviour
 
     // >>> add: remember current picks
     [SerializeField] Color _bodyColor = Color.white;
-    [SerializeField] Color _capColor  = Color.white;
+    [SerializeField] Color _capColor = Color.white;
     [SerializeField] int _eyeIndex = 0;
     [SerializeField] int _mouthIndex = 0;
 
@@ -90,18 +92,31 @@ public class ShroomCustomizerMPB : MonoBehaviour
     }
 
     // >>> add: export current picks
-    public ShroomData GetData() => new ShroomData {
+    public ShroomData GetData() => new ShroomData
+    {
         body = _bodyColor,
-        cap  = _capColor,
+        cap = _capColor,
         eyes = _eyeIndex,
-        mouth= _mouthIndex
+        mouth = _mouthIndex
     };
 
     // >>> add: apply a saved snapshot
-    public void ApplyData(ShroomData d) {
+    public void ApplyData(ShroomData d)
+    {
         SetBodyColor(d.body);
         SetCapColor(d.cap);
         SetEyesIndex(d.eyes);
         SetMouthIndex(d.mouth);
     }
+    
+    void OnEnable() { Reapply(); }
+
+    public void Reapply() 
+    {
+    SetBodyColor(_bodyColor);
+    SetCapColor(_capColor);
+    SetEyesIndex(_eyeIndex);
+    SetMouthIndex(_mouthIndex);
+    }
+
 }

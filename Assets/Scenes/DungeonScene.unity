@@ -1009,11 +1009,21 @@ MonoBehaviour:
   dungeonWidth: 100
   dungeonLength: 100
   dungeonFloors: 0
-  roomWidthMin: 25
-  roomLengthMin: 25
-  corridorWidth: 5
-  maxIterations: 1
+  roomWidthMin: 5
+  roomLengthMin: 5
+  roomOffset: 0
+  corridorWidth: 1
+  maxIterations: 20
+  bottomCornerModifier: 0
+  topCornerModifier: 0.7
+  floorPrefab: {fileID: 9100508158649072905, guid: e348e7143b6247b488737e4be26fb038, type: 3}
+  wallHorizontal: {fileID: 6229247520373792897, guid: c24cd3c213366cf4b9f1a116a4b41ff3, type: 3}
+  wallVertical: {fileID: 6229247520373792897, guid: 3ad7a1cffb2556547a8b7e60fd320431, type: 3}
+  doorPrefab: {fileID: 4463566038210007903, guid: 49a5f24a081cbbc44bd23d76c2869723, type: 3}
   material: {fileID: 2100000, guid: 094c835627124fe4bbbaa762d2240cb1, type: 2}
+  cellSize: 1
+  yOffset: 0
+  doorBaseLength: 0
 --- !u!1 &1301047930
 GameObject:
   m_ObjectHideFlags: 0

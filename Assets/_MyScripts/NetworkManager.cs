@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Photon.Voice.Unity;
+using Photon.Realtime;
 
 public class NetworkManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -31,6 +33,9 @@ public class NetworkManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (result.Ok)
         {
+            // >>> Link Photon Voice to the SAME ROOM as Fusion <<<
+            await EnsureVoiceLinkedToFusionAsync(sessionName);
+
             if (_runner.IsServer)
             {
                 _runner.LoadScene("GameScene");
@@ -41,6 +46,7 @@ public class NetworkManager : MonoBehaviour, INetworkRunnerCallbacks
             Debug.LogError($"Failed to Start Game: {result.ShutdownReason}");
         }
     }
+
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
@@ -56,9 +62,47 @@ public class NetworkManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner.IsServer)
         {
-            runner.Spawn(_playerPrefab, new Vector3(0, 18, 0), Quaternion.identity, player);
+            var obj = runner.Spawn(_playerPrefab, new Vector3(0, 18, 0), Quaternion.identity, player);
+            // Map this NetworkObject as the player's object so all peers can look it up.
+            runner.SetPlayerObject(player, obj);
         }
     }
+
+
+    private async Task EnsureVoiceLinkedToFusionAsync(string fusionRoomName)
+    {
+        // Connect Voice if needed
+        if (!PhotonVoiceNetwork.Instance.Client.IsConnected)
+        {
+            PhotonVoiceNetwork.Instance.AutoConnectAndJoin = false; // we’ll control it
+            PhotonVoiceNetwork.Instance.ConnectUsingSettings();      // uses Voice AppID in PhotonServerSettings
+            // wait until connected
+            while (!PhotonVoiceNetwork.Instance.Client.IsConnected)
+                await Task.Yield();
+        }
+
+        // Join same room as Fusion
+        if (!PhotonVoiceNetwork.Instance.Client.InRoom ||
+            PhotonVoiceNetwork.Instance.Client.CurrentRoom?.Name != fusionRoomName)
+        {
+            PhotonVoiceNetwork.Instance.Client.OpJoinOrCreateRoom(
+                new EnterRoomParams { RoomName = fusionRoomName });
+            // wait until in room
+            while (!PhotonVoiceNetwork.Instance.Client.InRoom)
+                await Task.Yield();
+        }
+    }
+
+    private void DisconnectVoice()
+    {
+        if (PhotonVoiceNetwork.Instance.Client.IsConnected)
+        {
+            if (PhotonVoiceNetwork.Instance.Client.InRoom)
+                PhotonVoiceNetwork.Instance.Client.OpLeaveRoom(false);
+            PhotonVoiceNetwork.Instance.Disconnect();
+        }
+    }
+
 
     // --- All other required empty functions ---
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }

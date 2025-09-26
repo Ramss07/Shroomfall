@@ -861,6 +861,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1301047932}
   - component: {fileID: 1301047931}
+  - component: {fileID: 1301047934}
+  - component: {fileID: 1301047933}
   m_Layer: 0
   m_Name: _NetworkManager
   m_TagString: Untagged
@@ -897,6 +899,77 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1301047933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1301047930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a38d73a8571ce438052dd31e09df5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PhotonVoice.Fusion::Photon.Voice.Fusion.FusionVoiceClient
+  DisconnectAfterKeepAlive: 0
+  KeepAliveInBackground: 60000
+  <CountSendAcksOnly>k__BackingField: 0
+  <FallbackThreadRunning>k__BackingField: 0
+  ApplyDontDestroyOnLoad: 1
+  didSendAcks: 0
+  supportLoggerComponent: {fileID: 0}
+  runInBackground: 1
+  statsResetInterval: 1000
+  nextStatsTickCount: 961026218
+  statsReferenceTime: 0
+  referenceFramesLost: 0
+  referenceFramesReceived: 0
+  speakerPrefab: {fileID: 0}
+  primaryRecorder: {fileID: 0}
+  usePrimaryRecorder: 0
+  cppCompatibilityMode: 0
+  linkedSpeakers: []
+  recorders: []
+  Settings:
+    AppIdRealtime: 
+    AppIdFusion: 
+    AppIdChat: 
+    AppIdVoice: 
+    AppVersion: 
+    UseNameServer: 1
+    FixedRegion: 
+    Server: 
+    Port: 0
+    ProxyServer: 
+    Protocol: 0
+    EnableProtocolFallback: 1
+    AuthMode: 0
+    EnableLobbyStatistics: 0
+    NetworkLogging: 1
+  ShowSettings: 1
+  <FramesReceivedPerSecond>k__BackingField: 0
+  <FramesLostPerSecond>k__BackingField: 0
+  <FramesLostPercent>k__BackingField: 0
+  AutoConnectAndJoin: 1
+  manualDisconnect: 0
+  errAuthOrJoin: 0
+  networkRunner: {fileID: 0}
+  voiceFollowClientStarted: 0
+  UseFusionAppSettings: 1
+  UseFusionAuthValues: 1
+  fusionOfflineVoiceRoomName: 
+--- !u!114 &1301047934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1301047930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1199893898, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkRunner
 --- !u!1 &1418950003
 GameObject:
   m_ObjectHideFlags: 0

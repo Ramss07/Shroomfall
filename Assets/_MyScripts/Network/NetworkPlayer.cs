@@ -126,15 +126,9 @@ if (GetInput(out NetworkInputData networkInputData))
     // Only the state authority runs physics/joints
     if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
 
-    if (IsDead)
-    {
-        isJumpButtonPressed = false;
-        return;
-    }
-
     float inputMagnitude = networkInputData.movementInput.magnitude; // (fixed typo)
 
-    if (isActiveRagdoll)
+    if (!IsDead && isActiveRagdoll)
     {
         if (inputMagnitude > 0.001f)
         {

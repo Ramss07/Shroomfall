@@ -21,6 +21,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField]
     Animator animator;
 
+    [SerializeField]
+    private int maxHp = 100;
+    [Networked] public int Hp { get; set; }
+    [Networked] public NetworkBool IsDead { get; set; }
+
+    public float HpPercent => maxHp <= 0 ? 0f : (float)Hp / maxHp;
+
     //Input
     Vector2 moveInputVector = Vector2.zero;
     bool isJumpButtonPressed = false;
@@ -64,7 +71,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     {
         //When restoring from becoming a ragdoll, store the original joint values
         startSlerpPositionSpring = mainJoint.slerpDrive.positionSpring;
-        
+
     }
 
     // Update is called once per frame
@@ -114,59 +121,67 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             localForwardVelocity = localVelocifyVsForward.magnitude;
         }
 
-        if (GetInput(out NetworkInputData networkInputData))
+if (GetInput(out NetworkInputData networkInputData))
+{
+    // Only the state authority runs physics/joints
+    if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
+
+    if (IsDead)
+    {
+        isJumpButtonPressed = false;
+        return;
+    }
+
+    float inputMagnitude = networkInputData.movementInput.magnitude; // (fixed typo)
+
+    if (isActiveRagdoll)
+    {
+        if (inputMagnitude > 0.001f)
         {
-            //Only the state authority runs physics/joints
-            if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
+            // Convert 2D input to world forward (your original had y * -1)
+            Vector3 move = new Vector3(networkInputData.movementInput.x, 0f, networkInputData.movementInput.y * -1f);
 
-            float inputMagnitued = networkInputData.movementInput.magnitude;
+            Quaternion desiredDirection = Quaternion.LookRotation(move, transform.up);
 
-            if (isActiveRagdoll)
+            // Guard joint write (it’s destroyed on proxies)
+            if (mainJoint)
+                mainJoint.targetRotation = Quaternion.RotateTowards(
+                    mainJoint.targetRotation, desiredDirection, Runner.DeltaTime * 300f);
+
+            if (localForwardVelocity < maxSpeed)
             {
-                if (inputMagnitued != 0)
-                {
-                    Quaternion desiredDirection = Quaternion.LookRotation(
-                        new Vector3(networkInputData.movementInput.x, 0, networkInputData.movementInput.y * -1),
-                        transform.up
-                    );
-
-                    //Guard joint write (it’s destroyed on proxies)
-                    if (mainJoint)
-                        mainJoint.targetRotation = Quaternion.RotateTowards(mainJoint.targetRotation, desiredDirection, Runner.DeltaTime * 300);
-
-                    if (localForwardVelocity < maxSpeed)
-                    {
-                        //Move the character in the direction it is facing
-                        rigidbody3D.AddForce(transform.forward * inputMagnitued * 30);
-                    }
-                }
-
-                if (isGrounded && networkInputData.isJumpPressed)
-                {
-                    rigidbody3D.AddForce(Vector3.up * 20, ForceMode.Impulse);
-                    isJumpButtonPressed = false;
-                }
-            }
-            else
-            {
-                // If we are a ragdoll, check if we should try to become active again
-                if (networkInputData.isAwakeButtonPressed && Runner.SimulationTime - lastTimeBecameRagdoll > 3)
-                    MakeActiveRagdoll();
+                // Move the character in the direction it is facing
+                rigidbody3D.AddForce(transform.forward * inputMagnitude * 30f, ForceMode.Acceleration);
             }
         }
 
+        if (isGrounded && networkInputData.isJumpPressed)
+        {
+            rigidbody3D.AddForce(Vector3.up * 20f, ForceMode.Impulse);
+            isJumpButtonPressed = false;
+        }
+    }
+    else
+    {
+        // We are in full ragdoll. With HP logic, only allow stand-up if NOT dead.
+        if (!IsDead && networkInputData.isAwakeButtonPressed && Runner.SimulationTime - lastTimeBecameRagdoll > 3)
+            MakeActiveRagdoll();
+    }
+}
 
-       
-        if(Object.HasStateAuthority)
+
+
+
+        if (Object.HasStateAuthority)
         {
             animator.SetFloat("movementSpeed", localForwardVelocity * 0.4f);
 
             //Update the joints rotation based on the animations
             for (int i = 0; i < syncPhysicsObjects.Length; i++)
             {
-                if(isActiveRagdoll)
+                if (isActiveRagdoll)
                     syncPhysicsObjects[i].UpdateJointFromAnimation();
-                    
+
                 networkPhysicsSyncedRotations.Set(i, syncPhysicsObjects[i].transform.localRotation);
             }
 
@@ -206,7 +221,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         if (isJumpButtonPressed)
             networkInputData.isJumpPressed = true;
 
-        if(isAwakeButtonPressed)
+        if (isAwakeButtonPressed)
             networkInputData.isAwakeButtonPressed = true;
 
         //Reset buttons
@@ -215,11 +230,20 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         return networkInputData;
     }
-    public void OnPlayerBodyPartHit()
+    public void OnPlayerBodyPartHit(int damage, Vector3 impulseDir, Rigidbody hitBody)
     {
-        if (!isActiveRagdoll)
-            return;
-        MakeRagdoll();
+        if (!Object.HasStateAuthority || IsDead) return;
+
+        // Apply the physical impulse regardless of damage (nice feedback)
+        if (hitBody) hitBody.AddForce(impulseDir, ForceMode.Impulse);
+
+        Hp = Mathf.Max(0, Hp - damage);
+
+        if (Hp == 0 && !IsDead)
+        {
+            IsDead = true;
+            MakeRagdoll(); // only ragdoll once we're "dead"
+        }
     }
 
     void MakeRagdoll()
@@ -289,6 +313,14 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         var shroom = GetComponentInChildren<ShroomCustomizerMPB>(true);
         if (shroom) shroom.Reapply();
 
+        if (Object.HasStateAuthority)
+        {
+            if(Hp <= 0)
+            {
+                Hp = maxHp;
+                IsDead = false;
+            }
+        }
     }
 
     public void PlayerLeft(PlayerRef player)
@@ -297,3 +329,4 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             Runner.Despawn(Object);
     }
 }
+

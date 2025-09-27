@@ -40,12 +40,16 @@ public class DetectCollision : MonoBehaviour
 
             //Get the contact impulse
             Vector3 contactImpulse = contactPoint.impulse / Time.fixedDeltaTime;
+            float mag = contactImpulse.magnitude;
 
-            //Check that the force was great enough to cause a "knockout"
-            if (contactImpulse.magnitude < 15)
+            //Check that the force was great enough to cause damage
+            if (mag < 15f)
                 continue;
 
-            networkPlayer.OnPlayerBodyPartHit();
+            //Calculate a damage value based on the impulse
+            float t = Mathf.InverseLerp(15f, 60f, mag);
+            //15 -> ~10 dmg, 60+ -> ~40 dmg (clamped)
+            int damage = Mathf.RoundToInt(Mathf.Lerp(10f, 40f, t));
 
             //Apply an impulse force to the body part that was hit, away from the contact point
             Vector3 forceDirection = (contactImpulse + Vector3.up) * 0.5f;
@@ -54,8 +58,8 @@ public class DetectCollision : MonoBehaviour
             forceDirection = Vector3.ClampMagnitude(forceDirection, 30);
             Debug.DrawRay(hitRigidbody.position, forceDirection * 40, Color.red, 4);
 
-            //Increase the effect of the hit
-            hitRigidbody.AddForce(forceDirection, ForceMode.Impulse);
+            //Increase the effect of the hit ?
+            networkPlayer.OnPlayerBodyPartHit(damage, forceDirection, hitRigidbody);
 
 
         }

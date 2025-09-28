@@ -9,54 +9,61 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 {
     public static NetworkPlayer Local { get; set; }
 
-    [SerializeField]
-    Rigidbody rigidbody3D;
+    [SerializeField] Rigidbody rigidbody3D;
+    [SerializeField] NetworkRigidbody3D networkRigidbody3D;
+    [SerializeField] ConfigurableJoint mainJoint;
+    [SerializeField] Animator animator;
 
-    [SerializeField]
-    NetworkRigidbody3D networkRigidbody3D;
-
-    [SerializeField]
-    ConfigurableJoint mainJoint;
-
-    [SerializeField]
-    Animator animator;
-
-    [SerializeField]
-    private int maxHp = 100;
+    //Health
+    [SerializeField] private int maxHp = 100;
     [Networked] public int Hp { get; set; }
     [Networked] public NetworkBool IsDead { get; set; }
-
     public float HpPercent => maxHp <= 0 ? 0f : (float)Hp / maxHp;
 
-    //Input
+    //Mouse look
+    [Header("Look Settings")]
+    [SerializeField] float mouseXSens = 2.5f;          // yaw sensitivity
+    [SerializeField] float mouseYSens = 2.0f;          // pitch sensitivity
+    [SerializeField] float minPitch = -60f;            // look down limit
+    [SerializeField] float maxPitch = 70f;             // look up limit
+    [SerializeField] ConfigurableJoint headJoint;      // assign your head/neck joint here
+
+    // Runtime aim state
+    float yawDeg;                                      // world yaw (around +Y)
+    float pitchDeg;                                    // local head pitch
+    Quaternion headStartLocalRot;                      // cached at spawn
+
+    // Input sampling
     Vector2 moveInputVector = Vector2.zero;
+    Vector2 lookDelta = Vector2.zero;                  // accumulated mouse delta per tick
     bool isJumpButtonPressed = false;
     bool isAwakeButtonPressed = false;
 
-    //Controller settings
+    // Controller settings
     float maxSpeed = 3;
 
-    //States
+    // States
     bool isGrounded = false;
     bool isActiveRagdoll = true;
     public bool IsActiveRagdoll => isActiveRagdoll;
 
-    //Raycasts
+    // Raycasts
     RaycastHit[] raycastHits = new RaycastHit[10];
 
-    //Syncing of physics objects
+    // Syncing of physics objects
     SyncPhysicsObject[] syncPhysicsObjects;
 
-    //Cinemachine
+    // Cinemachine
     CinemachineVirtualCamera cinemachineVirtualCamera;
     CinemachineBrain cinemachineBrain;
 
-    //Syncing clients ragdolls, quanternion may not be the most efficient way but it works for now.
+    // Syncing clients ragdolls
     [Networked, Capacity(10)] public NetworkArray<Quaternion> networkPhysicsSyncedRotations { get; }
 
-    //Store original values
+    // Store original values
     float startSlerpPositionSpring = 0.0f;
-    //Timing
+
+    // Timing
     float lastTimeBecameRagdoll = 0;
 
     void Awake()
@@ -64,28 +71,43 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         syncPhysicsObjects = GetComponentsInChildren<SyncPhysicsObject>();
         if (!mainJoint) mainJoint = GetComponent<ConfigurableJoint>();
 
+        // Auto-pick a head/neck joint if not assigned
+        if (!headJoint)
+        {
+            foreach (var j in GetComponentsInChildren<ConfigurableJoint>(true))
+            {
+                string n = j.name.ToLowerInvariant();
+                if (n.Contains("head") || n.Contains("neck")) { headJoint = j; break; }
+            }
+        }
     }
 
-    // Start is called before the first frame update
     void Start()
     {
-        //When restoring from becoming a ragdoll, store the original joint values
+        // Store original main joint spring for restore
         startSlerpPositionSpring = mainJoint.slerpDrive.positionSpring;
-
+        if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        //Move input
-        moveInputVector.x = Input.GetAxis("Horizontal");
-        moveInputVector.y = Input.GetAxis("Vertical");
+        // ---- InputAuthority only: sample raw inputs ----
+        if (Object.HasInputAuthority)
+        {
+            // WASD (movement wiring comes later)
+            moveInputVector.x = Input.GetAxis("Horizontal");
+            moveInputVector.y = Input.GetAxis("Vertical");
 
-        if (Input.GetKeyDown(KeyCode.Space))
-            isJumpButtonPressed = true;
+            // Mouse (accumulate; Fusion will drain once per tick)
+            lookDelta.x += Input.GetAxisRaw("Mouse X");
+            lookDelta.y += Input.GetAxisRaw("Mouse Y");
 
-        if (Input.GetKeyDown(KeyCode.Space))
-            isAwakeButtonPressed = true;
+            if (Input.GetKeyDown(KeyCode.Space))
+                isJumpButtonPressed = true;
+
+            if (Input.GetKeyDown(KeyCode.Space))
+                isAwakeButtonPressed = true;
+        }
     }
 
     public override void FixedUpdateNetwork()
@@ -95,25 +117,16 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (Object.HasStateAuthority)
         {
-            //Assume that we are not grounded. 
+            // Grounding
             isGrounded = false;
-
-            //Check if we are grounded
             int numberOfHits = Physics.SphereCastNonAlloc(rigidbody3D.position, 0.1f, transform.up * -1, raycastHits, 0.5f);
-
-            //Check for valid results
             for (int i = 0; i < numberOfHits; i++)
             {
-                //Ignore self hits
-                if (raycastHits[i].transform.root == transform)
-                    continue;
-
+                if (raycastHits[i].transform.root == transform) continue;
                 isGrounded = true;
-
                 break;
             }
 
-            //Apply extra gravity to charcter to make it less floaty
             if (!isGrounded)
                 rigidbody3D.AddForce(Vector3.down * 10);
 
@@ -121,56 +134,75 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             localForwardVelocity = localVelocifyVsForward.magnitude;
         }
 
-if (GetInput(out NetworkInputData networkInputData))
-{
-    // Only the state authority runs physics/joints
-    if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
-
-    float inputMagnitude = networkInputData.movementInput.magnitude; // (fixed typo)
-
-    if (!IsDead && isActiveRagdoll)
-    {
-        if (inputMagnitude > 0.001f)
+        if (GetInput(out NetworkInputData networkInputData))
         {
-            // Convert 2D input to world forward (your original had y * -1)
-            Vector3 move = new Vector3(networkInputData.movementInput.x, 0f, networkInputData.movementInput.y * -1f);
+            // Only the state authority runs physics/joints
+            if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
 
-            Quaternion desiredDirection = Quaternion.LookRotation(move, transform.up);
-
-            // Guard joint write (it’s destroyed on proxies)
-            if (mainJoint)
-                mainJoint.targetRotation = Quaternion.RotateTowards(
-                    mainJoint.targetRotation, desiredDirection, Runner.DeltaTime * 300f);
-
-            if (localForwardVelocity < maxSpeed)
+            // --- Mouse look: always let authority apply look when active ragdoll ---
+            if (isActiveRagdoll)
             {
-                // Move the character in the direction it is facing
-                rigidbody3D.AddForce(transform.forward * inputMagnitude * 30f, ForceMode.Acceleration);
+                // Accumulate yaw/pitch
+                yawDeg   += networkInputData.lookDelta.x * mouseXSens;
+                pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
+                pitchDeg  = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+
+                // 1) Yaw → steer main joint (world-space look)
+                if (mainJoint)
+                {
+                    Vector3 desiredFwd = Quaternion.Euler(0f, yawDeg, 0f) * Vector3.forward;
+                    Quaternion desiredYawRot = Quaternion.LookRotation(desiredFwd, Vector3.up);
+
+                    mainJoint.targetRotation = Quaternion.RotateTowards(
+                        mainJoint.targetRotation, desiredYawRot, Runner.DeltaTime * 720f);
+                }
+
+                // 2) Pitch → tilt head/neck joint locally
+                if (headJoint)
+                {
+                    // Keep it simple & robust: offset from the starting local rotation
+                    // (If you have a SetTargetRotationLocal extension, you can switch to it)
+                    headJoint.targetRotation = headStartLocalRot * Quaternion.Euler(-pitchDeg, 0f, 0f);
+                }
+            }
+
+            // ---- Movement & jump only when alive & active ----
+            float inputMagnitude = networkInputData.movementInput.magnitude;
+
+            if (!IsDead && isActiveRagdoll)
+            {
+                if (inputMagnitude > 0.001f)
+                {
+                    Vector3 move = new Vector3(networkInputData.movementInput.x, 0f, networkInputData.movementInput.y * -1f);
+                    Quaternion desiredDirection = Quaternion.LookRotation(move, transform.up);
+
+                    if (mainJoint)
+                        mainJoint.targetRotation = Quaternion.RotateTowards(
+                            mainJoint.targetRotation, desiredDirection, Runner.DeltaTime * 300f);
+
+                    if (localForwardVelocity < maxSpeed)
+                        rigidbody3D.AddForce(transform.forward * inputMagnitude * 30f, ForceMode.Acceleration);
+                }
+
+                if (isGrounded && networkInputData.isJumpPressed)
+                {
+                    rigidbody3D.AddForce(Vector3.up * 20f, ForceMode.Impulse);
+                    isJumpButtonPressed = false;
+                }
+            }
+            else
+            {
+                // We are in full ragdoll. Only allow stand-up if NOT dead.
+                if (!IsDead && networkInputData.isAwakeButtonPressed && Runner.SimulationTime - lastTimeBecameRagdoll > 3)
+                    MakeActiveRagdoll();
             }
         }
-
-        if (isGrounded && networkInputData.isJumpPressed)
-        {
-            rigidbody3D.AddForce(Vector3.up * 20f, ForceMode.Impulse);
-            isJumpButtonPressed = false;
-        }
-    }
-    else
-    {
-        // We are in full ragdoll. With HP logic, only allow stand-up if NOT dead.
-        if (!IsDead && networkInputData.isAwakeButtonPressed && Runner.SimulationTime - lastTimeBecameRagdoll > 3)
-            MakeActiveRagdoll();
-    }
-}
-
-
-
 
         if (Object.HasStateAuthority)
         {
             animator.SetFloat("movementSpeed", localForwardVelocity * 0.4f);
 
-            //Update the joints rotation based on the animations
+            // Write bone rotations every tick so proxies can interpolate
             for (int i = 0; i < syncPhysicsObjects.Length; i++)
             {
                 if (isActiveRagdoll)
@@ -181,7 +213,6 @@ if (GetInput(out NetworkInputData networkInputData))
 
             if (transform.position.y < -10)
                 networkRigidbody3D.Teleport(Vector3.zero, Quaternion.identity);
-
         }
     }
 
@@ -190,11 +221,11 @@ if (GetInput(out NetworkInputData networkInputData))
         if (!Object.HasStateAuthority)
         {
             var interpolated = new NetworkBehaviourBufferInterpolator(this);
-
-            //Get the networked physics objects from the host and update the clients
             for (int i = 0; i < syncPhysicsObjects.Length; i++)
             {
-                syncPhysicsObjects[i].transform.localRotation = Quaternion.Slerp(syncPhysicsObjects[i].transform.localRotation, networkPhysicsSyncedRotations.Get(i), interpolated.Alpha);
+                syncPhysicsObjects[i].transform.localRotation =
+                    Quaternion.Slerp(syncPhysicsObjects[i].transform.localRotation,
+                                     networkPhysicsSyncedRotations.Get(i), interpolated.Alpha);
             }
         }
 
@@ -209,26 +240,24 @@ if (GetInput(out NetworkInputData networkInputData))
     {
         NetworkInputData networkInputData = new NetworkInputData();
 
-        //Move data
         networkInputData.movementInput = moveInputVector;
+        networkInputData.lookDelta     = lookDelta;        // ← send mouse delta
 
-        if (isJumpButtonPressed)
-            networkInputData.isJumpPressed = true;
+        if (isJumpButtonPressed)   networkInputData.isJumpPressed = true;
+        if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
 
-        if (isAwakeButtonPressed)
-            networkInputData.isAwakeButtonPressed = true;
-
-        //Reset buttons
-        isJumpButtonPressed = false;
+        // Reset one-shots each tick
+        isJumpButtonPressed  = false;
         isAwakeButtonPressed = false;
+        lookDelta            = Vector2.zero;               // ← drain
 
         return networkInputData;
     }
+
     public void OnPlayerBodyPartHit(int damage, Vector3 impulseDir, Rigidbody hitBody)
     {
         if (!Object.HasStateAuthority || IsDead) return;
 
-        // Apply the physical impulse regardless of damage (nice feedback)
         if (hitBody) hitBody.AddForce(impulseDir, ForceMode.Impulse);
 
         Hp = Mathf.Max(0, Hp - damage);
@@ -236,25 +265,20 @@ if (GetInput(out NetworkInputData networkInputData))
         if (Hp == 0 && !IsDead)
         {
             IsDead = true;
-            MakeRagdoll(); // only ragdoll once we're "dead"
+            MakeRagdoll();
         }
     }
 
     void MakeRagdoll()
     {
-        if (!Object.HasStateAuthority)
-            return;
+        if (!Object.HasStateAuthority) return;
 
-        //Update main joint
         JointDrive jointDrive = mainJoint.slerpDrive;
         jointDrive.positionSpring = 0;
         mainJoint.slerpDrive = jointDrive;
 
-        //Update the joints rotation and send them to the clients
         for (int i = 0; i < syncPhysicsObjects.Length; i++)
-        {
             syncPhysicsObjects[i].MakeRagdoll();
-        }
 
         lastTimeBecameRagdoll = Runner.SimulationTime;
         isActiveRagdoll = false;
@@ -262,18 +286,14 @@ if (GetInput(out NetworkInputData networkInputData))
 
     void MakeActiveRagdoll()
     {
-        if (!Object.HasStateAuthority)
-            return;
+        if (!Object.HasStateAuthority) return;
 
         JointDrive jointDrive = mainJoint.slerpDrive;
         jointDrive.positionSpring = startSlerpPositionSpring;
         mainJoint.slerpDrive = jointDrive;
 
-        //Update the joints rotation and send them to the clients
         for (int i = 0; i < syncPhysicsObjects.Length; i++)
-        {
             syncPhysicsObjects[i].MakeActiveRagdoll();
-        }
 
         isActiveRagdoll = true;
     }
@@ -290,17 +310,19 @@ if (GetInput(out NetworkInputData networkInputData))
             cinemachineVirtualCamera.m_Follow = transform;
             cinemachineVirtualCamera.m_LookAt = transform;
 
+            // Helpful when testing first-person: lock and hide cursor
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
             Utils.DebugLog("Spawned player with input authority");
         }
         else Utils.DebugLog("Spawned player without input authority");
 
-        //Make it easier to tell which player is which.
         transform.name = $"P_{Object.Id}";
 
         if (!Object.HasStateAuthority)
         {
             Destroy(mainJoint);
-
             rigidbody3D.isKinematic = true;
         }
 
@@ -309,11 +331,16 @@ if (GetInput(out NetworkInputData networkInputData))
 
         if (Object.HasStateAuthority)
         {
-            if(Hp <= 0)
+            if (Hp <= 0)
             {
                 Hp = maxHp;
                 IsDead = false;
             }
+
+            // Initialize yaw from current facing
+            yawDeg = transform.eulerAngles.y;
+            pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+            if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
         }
     }
 
@@ -323,4 +350,3 @@ if (GetInput(out NetworkInputData networkInputData))
             Runner.Despawn(Object);
     }
 }
-

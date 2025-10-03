@@ -143,9 +143,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             // Mouse look
             if (isActiveRagdoll)
             {
-                yawDeg   -= networkInputData.lookDelta.x * mouseXSens;
+                yawDeg -= networkInputData.lookDelta.x * mouseXSens;
                 pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
-                pitchDeg  = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+                pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
 
                 if (mainJoint)
                 {
@@ -159,6 +159,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 if (headJoint)
                 {
                     headJoint.targetRotation = headStartLocalRot * Quaternion.Euler(-pitchDeg, 0f, 0f);
+                }
+                if (cameraAnchor != null)
+                {
+                    cameraAnchor.localRotation = Quaternion.Euler(pitchDeg, cameraAnchor.localRotation.eulerAngles.y, 0f);
                 }
             }
 

@@ -13,6 +13,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] NetworkRigidbody3D networkRigidbody3D;
     [SerializeField] ConfigurableJoint mainJoint;
     [SerializeField] Animator animator;
+    [SerializeField] Transform cameraAnchor;
+
 
     //Health
     [SerializeField] private int maxHp = 100;
@@ -26,16 +28,16 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] float mouseYSens = 2.0f;          // pitch sensitivity
     [SerializeField] float minPitch = -60f;            // look down limit
     [SerializeField] float maxPitch = 70f;             // look up limit
-    [SerializeField] ConfigurableJoint headJoint;      // assign your head/neck joint here
+    [SerializeField] ConfigurableJoint headJoint;
 
     // Runtime aim state
-    float yawDeg;                                      // world yaw (around +Y)
-    float pitchDeg;                                    // local head pitch
-    Quaternion headStartLocalRot;                      // cached at spawn
+    float yawDeg;
+    float pitchDeg;
+    Quaternion headStartLocalRot;
 
     // Input sampling
     Vector2 moveInputVector = Vector2.zero;
-    Vector2 lookDelta = Vector2.zero;                  // accumulated mouse delta per tick
+    Vector2 lookDelta = Vector2.zero;
     bool isJumpButtonPressed = false;
     bool isAwakeButtonPressed = false;
 
@@ -136,18 +138,15 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (GetInput(out NetworkInputData networkInputData))
         {
-            // Only the state authority runs physics/joints
             if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
 
-            // --- Mouse look: always let authority apply look when active ragdoll ---
+            // Mouse look
             if (isActiveRagdoll)
             {
-                // Accumulate yaw/pitch
-                yawDeg   += networkInputData.lookDelta.x * mouseXSens;
+                yawDeg   -= networkInputData.lookDelta.x * mouseXSens;
                 pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
                 pitchDeg  = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
 
-                // 1) Yaw → steer main joint (world-space look)
                 if (mainJoint)
                 {
                     Vector3 desiredFwd = Quaternion.Euler(0f, yawDeg, 0f) * Vector3.forward;
@@ -157,16 +156,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                         mainJoint.targetRotation, desiredYawRot, Runner.DeltaTime * 720f);
                 }
 
-                // 2) Pitch → tilt head/neck joint locally
                 if (headJoint)
                 {
-                    // Keep it simple & robust: offset from the starting local rotation
-                    // (If you have a SetTargetRotationLocal extension, you can switch to it)
                     headJoint.targetRotation = headStartLocalRot * Quaternion.Euler(-pitchDeg, 0f, 0f);
                 }
             }
 
-            // ---- Movement & jump only when alive & active ----
+            // Movement & jump
             float inputMagnitude = networkInputData.movementInput.magnitude;
 
             if (!IsDead && isActiveRagdoll)
@@ -241,7 +237,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         NetworkInputData networkInputData = new NetworkInputData();
 
         networkInputData.movementInput = moveInputVector;
-        networkInputData.lookDelta     = lookDelta;        // ← send mouse delta
+        networkInputData.lookDelta     = lookDelta;
 
         if (isJumpButtonPressed)   networkInputData.isJumpPressed = true;
         if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
@@ -249,7 +245,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         // Reset one-shots each tick
         isJumpButtonPressed  = false;
         isAwakeButtonPressed = false;
-        lookDelta            = Vector2.zero;               // ← drain
+        lookDelta            = Vector2.zero;
 
         return networkInputData;
     }
@@ -307,8 +303,11 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             cinemachineVirtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             cinemachineBrain = FindObjectOfType<CinemachineBrain>();
 
-            cinemachineVirtualCamera.m_Follow = transform;
-            cinemachineVirtualCamera.m_LookAt = transform;
+            if (cameraAnchor != null)
+            {
+                cinemachineVirtualCamera.m_Follow = cameraAnchor;
+                cinemachineVirtualCamera.m_LookAt = cameraAnchor;
+            }
 
             // Helpful when testing first-person: lock and hide cursor
             Cursor.lockState = CursorLockMode.Locked;

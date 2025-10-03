@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 9c6dee53940f0a443b5da2e7a27e27e7
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 271622
+  packageName: POLYGON - Enchanted Forest - Nature Biomes - 3D Environment Art by
+    Synty
+  packageVersion: 1.6.1
+  assetPath: Assets/Synty/PolygonNatureBiomes/PNB_Enchanted_Forest/Scripts/LightMotion.cs
+  uploadId: 794496

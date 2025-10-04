@@ -34,6 +34,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     float yawDeg;
     float pitchDeg;
     Quaternion headStartLocalRot;
+    float visualYawDeg;
 
     // Input sampling
     Vector2 moveInputVector = Vector2.zero;
@@ -83,7 +84,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             }
         }
     }
-
+    
     void Start()
     {
         // Store original main joint spring for restore
@@ -101,8 +102,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             moveInputVector.y = Input.GetAxis("Vertical");
 
             // Mouse (accumulate; Fusion will drain once per tick)
-            lookDelta.x += Input.GetAxisRaw("Mouse X");
+            lookDelta.x -= Input.GetAxisRaw("Mouse X");
             lookDelta.y += Input.GetAxisRaw("Mouse Y");
+            visualYawDeg += Input.GetAxisRaw("Mouse X") * mouseXSens;
+            visualYawDeg = Mathf.DeltaAngle(0f, visualYawDeg);
 
             if (Input.GetKeyDown(KeyCode.Space))
                 isJumpButtonPressed = true;
@@ -142,7 +145,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             // Mouse look
             if (isActiveRagdoll)
             {
-                yawDeg -= networkInputData.lookDelta.x * mouseXSens;
+                yawDeg += networkInputData.lookDelta.x * mouseXSens;
                 pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
                 pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
 
@@ -161,7 +164,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 }
                 if (cameraAnchor != null)
                 {
-                    cameraAnchor.localRotation = Quaternion.Euler(pitchDeg, cameraAnchor.localRotation.eulerAngles.y, 0f);
+                    cameraAnchor.localRotation = Quaternion.Euler(pitchDeg, 0f, 0f);
                 }
             }
 
@@ -169,25 +172,19 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             float inputMagnitude = networkInputData.movementInput.magnitude;
 
             if (!IsDead && isActiveRagdoll)
-            {
-                Vector3 fwd = (cameraAnchor ? cameraAnchor.forward : transform.forward);
-                fwd.y = 0f; fwd.Normalize();
+                {
+                // Use the client’s aim for the move frame instead of cameraAnchor/body yaw
+                Quaternion aimRot = Quaternion.Euler(0f, networkInputData.aimYawDeg, 0f);
 
-                Vector3 right = (cameraAnchor ? cameraAnchor.right : transform.right);
-                right.y = 0f; right.Normalize();
+                Vector3 fwd  = aimRot * Vector3.forward; fwd.y  = 0f; fwd.Normalize();
+                Vector3 right= aimRot * Vector3.right;   right.y= 0f; right.Normalize();
 
-                // Build move direction from input
                 Vector3 moveDir = fwd * networkInputData.movementInput.y
                                 + right * networkInputData.movementInput.x;
 
-                // Apply force if there is input
-                if (moveDir.sqrMagnitude > 0.0001f)
-                {
+                if (moveDir.sqrMagnitude > 0.0001f) {
                     moveDir.Normalize();
-
-                    // Cap horizontal speed
-                    Vector3 vel = rigidbody3D.linearVelocity;
-                    vel.y = 0f;
+                    Vector3 vel = rigidbody3D.linearVelocity; vel.y = 0f;
                     if (vel.magnitude < maxSpeed)
                         rigidbody3D.AddForce(moveDir * 30f, ForceMode.Acceleration);
                 }
@@ -245,8 +242,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             }
         }
 
-        if (Object.HasInputAuthority)
+        if (Object.HasInputAuthority && cameraAnchor)
         {
+            float simYawDeg = transform.eulerAngles.y;
+            float yawOffset = Mathf.DeltaAngle(simYawDeg, visualYawDeg); // how far ahead the camera is
+
+            cameraAnchor.localRotation = Quaternion.Euler(pitchDeg, yawOffset, 0f);
+
             cinemachineBrain.ManualUpdate();
             cinemachineVirtualCamera.UpdateCameraState(Vector3.up, Runner.LocalAlpha);
         }
@@ -258,8 +260,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         networkInputData.movementInput = moveInputVector;
         networkInputData.lookDelta     = lookDelta;
+        networkInputData.aimYawDeg     = visualYawDeg;
 
-        if (isJumpButtonPressed)   networkInputData.isJumpPressed = true;
+        if (isJumpButtonPressed) networkInputData.isJumpPressed = true;
         if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
 
         // Reset one-shots each tick

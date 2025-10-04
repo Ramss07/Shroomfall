@@ -8,4 +8,5 @@ public struct NetworkInputData : INetworkInput
     public NetworkBool isJumpPressed;
     public NetworkBool isAwakeButtonPressed;
     public Vector2 lookDelta;
+    public float aimYawDeg;
 }

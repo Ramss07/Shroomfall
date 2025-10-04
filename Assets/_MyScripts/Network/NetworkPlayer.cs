@@ -170,23 +170,40 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             if (!IsDead && isActiveRagdoll)
             {
-                if (inputMagnitude > 0.001f)
+                Vector3 fwd = (cameraAnchor ? cameraAnchor.forward : transform.forward);
+                fwd.y = 0f; fwd.Normalize();
+
+                Vector3 right = (cameraAnchor ? cameraAnchor.right : transform.right);
+                right.y = 0f; right.Normalize();
+
+                // Build move direction from input
+                Vector3 moveDir = fwd * networkInputData.movementInput.y
+                                + right * networkInputData.movementInput.x;
+
+                // Apply force if there is input
+                if (moveDir.sqrMagnitude > 0.0001f)
                 {
-                    Vector3 move = new Vector3(networkInputData.movementInput.x, 0f, networkInputData.movementInput.y * -1f);
-                    Quaternion desiredDirection = Quaternion.LookRotation(move, transform.up);
+                    moveDir.Normalize();
 
-                    if (mainJoint)
-                        mainJoint.targetRotation = Quaternion.RotateTowards(
-                            mainJoint.targetRotation, desiredDirection, Runner.DeltaTime * 300f);
-
-                    if (localForwardVelocity < maxSpeed)
-                        rigidbody3D.AddForce(transform.forward * inputMagnitude * 30f, ForceMode.Acceleration);
+                    // Cap horizontal speed
+                    Vector3 vel = rigidbody3D.linearVelocity;
+                    vel.y = 0f;
+                    if (vel.magnitude < maxSpeed)
+                        rigidbody3D.AddForce(moveDir * 30f, ForceMode.Acceleration);
                 }
 
+                // Jump
                 if (isGrounded && networkInputData.isJumpPressed)
                 {
-                    rigidbody3D.AddForce(Vector3.up * 20f, ForceMode.Impulse);
+                    rigidbody3D.AddForce(Vector3.up * 30f, ForceMode.Impulse);
                     isJumpButtonPressed = false;
+                }
+                // Dampen to reduce sliding
+                if (networkInputData.movementInput.sqrMagnitude < 0.0001f && isGrounded)
+                {
+                    Vector3 horizVel = rigidbody3D.linearVelocity;
+                    horizVel.y = 0f;
+                    rigidbody3D.AddForce(-horizVel * 3f, ForceMode.Acceleration);
                 }
             }
             else

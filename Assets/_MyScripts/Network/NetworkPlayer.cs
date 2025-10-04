@@ -138,7 +138,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (GetInput(out NetworkInputData networkInputData))
         {
-            if (!Object.HasStateAuthority) { isJumpButtonPressed = false; return; }
 
             // Mouse look
             if (isActiveRagdoll)

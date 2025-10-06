@@ -97,7 +97,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         // ---- InputAuthority only: sample raw inputs ----
         if (Object.HasInputAuthority)
         {
-            // WASD (movement wiring comes later)
             moveInputVector.x = Input.GetAxis("Horizontal");
             moveInputVector.y = Input.GetAxis("Vertical");
 
@@ -110,7 +109,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             if (Input.GetKeyDown(KeyCode.Space))
                 isJumpButtonPressed = true;
 
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.F))
                 isAwakeButtonPressed = true;
         }
     }
@@ -120,24 +119,21 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         Vector3 localVelocifyVsForward = Vector3.zero;
         float localForwardVelocity = 0;
 
-        if (Object.HasStateAuthority)
-        {
+
             // Grounding
             isGrounded = false;
-            int numberOfHits = Physics.SphereCastNonAlloc(rigidbody3D.position, 0.1f, transform.up * -1, raycastHits, 0.5f);
-            for (int i = 0; i < numberOfHits; i++)
-            {
+            int numberOfHits = Physics.SphereCastNonAlloc(
+                rigidbody3D.position, 0.1f, -transform.up, raycastHits, 0.5f
+            );
+            for (int i = 0; i < numberOfHits; i++) {
                 if (raycastHits[i].transform.root == transform) continue;
-                isGrounded = true;
-                break;
+                isGrounded = true; break;
             }
-
-            if (!isGrounded)
-                rigidbody3D.AddForce(Vector3.down * 10);
+            if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration);
 
             localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
             localForwardVelocity = localVelocifyVsForward.magnitude;
-        }
+        
 
         if (GetInput(out NetworkInputData networkInputData))
         {
@@ -322,49 +318,39 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         if (Object.HasInputAuthority)
         {
             Local = this;
-
             cinemachineVirtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             cinemachineBrain = FindObjectOfType<CinemachineBrain>();
-
-            if (cameraAnchor != null)
-            {
-                cinemachineVirtualCamera.m_Follow = cameraAnchor;
-                cinemachineVirtualCamera.m_LookAt = cameraAnchor;
+            if (cameraAnchor != null) {
+            cinemachineVirtualCamera.m_Follow = cameraAnchor;
+            cinemachineVirtualCamera.m_LookAt = cameraAnchor;
             }
-
-            // Helpful when testing first-person: lock and hide cursor
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-
-            Utils.DebugLog("Spawned player with input authority");
-        }
-        else Utils.DebugLog("Spawned player without input authority");
-
-        transform.name = $"P_{Object.Id}";
-
-        if (!Object.HasStateAuthority)
-        {
-            Destroy(mainJoint);
-            rigidbody3D.isKinematic = true;
         }
 
-        var shroom = GetComponentInChildren<ShroomCustomizerMPB>(true);
-        if (shroom) shroom.Reapply();
+  transform.name = $"P_{Object.Id}";
 
-        if (Object.HasStateAuthority)
-        {
-            if (Hp <= 0)
-            {
-                Hp = maxHp;
-                IsDead = false;
-            }
+  // PROXIES ONLY: disable physics
+  if (!Object.HasStateAuthority && !Object.HasInputAuthority) {
+    // Pure proxy
+    if (mainJoint) Destroy(mainJoint);
+    rigidbody3D.isKinematic = true;
+  } else {
+    // Host or Local Client: must simulate physics for prediction
+    rigidbody3D.isKinematic = false;
+    rigidbody3D.interpolation = RigidbodyInterpolation.None; // let Fusion drive timing
+  }
 
-            // Initialize yaw from current facing
-            yawDeg = transform.eulerAngles.y;
-            pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
-            if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
-        }
-    }
+  var shroom = GetComponentInChildren<ShroomCustomizerMPB>(true);
+  if (shroom) shroom.Reapply();
+
+  if (Object.HasStateAuthority) {
+    if (Hp <= 0) { Hp = maxHp; IsDead = false; }
+    yawDeg = transform.eulerAngles.y;
+    pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+    if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
+  }
+}
 
     public void PlayerLeft(PlayerRef player)
     {

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6982189080111502386}
   - component: {fileID: 7685064650062060637}
   - component: {fileID: 9097608223014631139}
+  - component: {fileID: -1001244299941725436}
   m_Layer: 0
   m_Name: Network Runner Prefab
   m_TagString: Untagged
@@ -62,3 +63,18 @@ MonoBehaviour:
   ClientPhysicsSimulation: 1
   DeltaTimeMultiplier: 1
   SetUnityFixedTimestep: 0
+--- !u!114 &-1001244299941725436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3954111136449544807}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c6080750a33c9d428004642d0e07dd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Unity::Fusion.Statistics.FusionStatistics
+  _statsEnabled: 249572
+  _canvasAnchor: 1
+  _statsCustomConfig: []

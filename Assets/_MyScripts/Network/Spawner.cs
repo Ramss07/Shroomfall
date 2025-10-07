@@ -74,6 +74,16 @@ public class Spawner : SimulationBehaviour, INetworkRunnerCallbacks
             label.text = $"Code: {runner.SessionInfo.Name}";
             Utils.DebugLog("OnPlayerJoined this is the server/host, spawning network player");
 
+            var voiceClient = FindFirstObjectByType<Photon.Voice.Fusion.FusionVoiceClient>();
+            if (voiceClient == null)
+            {
+                Utils.DebugLog("!!! CRITICAL ERROR: FusionVoiceClient NOT FOUND in scene right before spawn!");
+            }
+            else
+            {
+                Utils.DebugLog("SUCCESS: FusionVoiceClient was found in scene before spawn.");
+            }
+
             runner.Spawn(networkPlayerPrefab.gameObject, Vector3.zero, Quaternion.identity, player);
 
         }
@@ -121,9 +131,5 @@ public class Spawner : SimulationBehaviour, INetworkRunnerCallbacks
 
     }
     
-    void Awake()
-    {
-        var runner = FindObjectOfType<NetworkRunner>();
-        if (runner) runner.AddCallbacks(this);
-    }
+   
 }

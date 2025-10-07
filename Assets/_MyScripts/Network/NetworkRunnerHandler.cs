@@ -21,7 +21,7 @@ public class NetworkRunnerHandler : MonoBehaviour
 
     void Awake()
     {
-        networkRunner = FindObjectOfType<NetworkRunner>();
+        networkRunner = FindFirstObjectByType<NetworkRunner>();
     }
 
 
@@ -58,7 +58,7 @@ public class NetworkRunnerHandler : MonoBehaviour
 
         networkRunner.ProvideInput = true;
 
-        var spawner = FindObjectOfType<Spawner>();
+        var spawner = FindFirstObjectByType<Spawner>();
         if (spawner) networkRunner.AddCallbacks(spawner);
 
 
@@ -92,7 +92,7 @@ public class NetworkRunnerHandler : MonoBehaviour
             var sceneRef = SceneRef.FromIndex(1);     // Game scene index
             var sceneMgr = GetSceneManager(networkRunner); // you already have this
             // Make sure callbacks are added (Spawner will also self-register, see below)
-            var spawner = FindObjectOfType<Spawner>();
+            var spawner = FindFirstObjectByType<Spawner>();
             if (spawner) networkRunner.AddCallbacks(spawner);
 
             await networkRunner.StartGame(new StartGameArgs{

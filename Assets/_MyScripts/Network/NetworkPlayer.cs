@@ -41,6 +41,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     Vector2 lookDelta = Vector2.zero;
     bool isJumpButtonPressed = false;
     bool isAwakeButtonPressed = false;
+    bool isGrabButtonPressed = false;
 
     // Controller settings
     float maxSpeed = 3;
@@ -49,6 +50,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     bool isGrounded = false;
     bool isActiveRagdoll = true;
     public bool IsActiveRagdoll => isActiveRagdoll;
+    bool isGrabbingActive = false;
+    public bool IsGrabbingActive => isGrabbingActive;
 
     // Raycasts
     RaycastHit[] raycastHits = new RaycastHit[10];
@@ -69,9 +72,14 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     // Timing
     float lastTimeBecameRagdoll = 0;
 
+    //Grabhandler
+    HandGrabHandler[] handGrabHandlers;
+
     void Awake()
     {
         syncPhysicsObjects = GetComponentsInChildren<SyncPhysicsObject>();
+        handGrabHandlers = GetComponentsInChildren<HandGrabHandler>();
+
         if (!mainJoint) mainJoint = GetComponent<ConfigurableJoint>();
 
         // Auto-pick a head/neck joint if not assigned
@@ -111,6 +119,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             if (Input.GetKeyDown(KeyCode.F))
                 isAwakeButtonPressed = true;
+
+            isGrabButtonPressed = Input.GetKey(KeyCode.G);
         }
     }
 
@@ -166,19 +176,21 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             // Movement & jump
             float inputMagnitude = networkInputData.movementInput.magnitude;
+            isGrabbingActive = networkInputData.isGrabPressed;
 
             if (!IsDead && isActiveRagdoll)
-                {
+            {
                 // Use the client’s aim for the move frame instead of cameraAnchor/body yaw
                 Quaternion aimRot = Quaternion.Euler(0f, networkInputData.aimYawDeg, 0f);
 
-                Vector3 fwd  = aimRot * Vector3.forward; fwd.y  = 0f; fwd.Normalize();
-                Vector3 right= aimRot * Vector3.right;   right.y= 0f; right.Normalize();
+                Vector3 fwd = aimRot * Vector3.forward; fwd.y = 0f; fwd.Normalize();
+                Vector3 right = aimRot * Vector3.right; right.y = 0f; right.Normalize();
 
                 Vector3 moveDir = fwd * networkInputData.movementInput.y
                                 + right * networkInputData.movementInput.x;
 
-                if (moveDir.sqrMagnitude > 0.0001f) {
+                if (moveDir.sqrMagnitude > 0.0001f)
+                {
                     moveDir.Normalize();
                     Vector3 vel = rigidbody3D.linearVelocity; vel.y = 0f;
                     if (vel.magnitude < maxSpeed)
@@ -219,9 +231,16 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
                 networkPhysicsSyncedRotations.Set(i, syncPhysicsObjects[i].transform.localRotation);
             }
-
+            // Auto-respawn if we fall out of the world (Temporary solution)
             if (transform.position.y < -10)
+            {
                 networkRigidbody3D.Teleport(Vector3.zero, Quaternion.identity);
+            }
+
+            foreach (HandGrabHandler handGrabHandler in handGrabHandlers)
+            {
+                handGrabHandler.UpdateState();
+            }
         }
     }
 
@@ -260,6 +279,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (isJumpButtonPressed) networkInputData.isJumpPressed = true;
         if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
+        if (isGrabButtonPressed) networkInputData.isGrabPressed = true;
 
         // Reset one-shots each tick
         isJumpButtonPressed  = false;
@@ -297,6 +317,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         lastTimeBecameRagdoll = Runner.SimulationTime;
         isActiveRagdoll = false;
+        isGrabbingActive = false;
     }
 
     void MakeActiveRagdoll()
@@ -311,6 +332,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             syncPhysicsObjects[i].MakeActiveRagdoll();
 
         isActiveRagdoll = true;
+        isGrabbingActive = false;
     }
 
     public override void Spawned()
@@ -332,25 +354,25 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
   // PROXIES ONLY: disable physics
   if (!Object.HasStateAuthority && !Object.HasInputAuthority) {
-    // Pure proxy
-    if (mainJoint) Destroy(mainJoint);
-    rigidbody3D.isKinematic = true;
-  } else {
-    // Host or Local Client: must simulate physics for prediction
-    rigidbody3D.isKinematic = false;
-    rigidbody3D.interpolation = RigidbodyInterpolation.None; // let Fusion drive timing
-  }
+        // Pure proxy
+            if (mainJoint) Destroy(mainJoint);
+            rigidbody3D.isKinematic = true;
+        } else {
+            // Host or Local Client: must simulate physics for prediction
+            rigidbody3D.isKinematic = false;
+            rigidbody3D.interpolation = RigidbodyInterpolation.None; // let Fusion drive timing
+        }
 
-  var shroom = GetComponentInChildren<ShroomCustomizerMPB>(true);
-  if (shroom) shroom.Reapply();
+        var shroom = GetComponentInChildren<ShroomCustomizerMPB>(true);
+        if (shroom) shroom.Reapply();
 
-  if (Object.HasStateAuthority) {
-    if (Hp <= 0) { Hp = maxHp; IsDead = false; }
-    yawDeg = transform.eulerAngles.y;
-    pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
-    if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
-  }
-}
+        if (Object.HasStateAuthority) {
+            if (Hp <= 0) { Hp = maxHp; IsDead = false; }
+            yawDeg = transform.eulerAngles.y;
+            pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+            if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
+        }
+    }
 
     public void PlayerLeft(PlayerRef player)
     {

@@ -119,6 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+<<<<<<< Updated upstream
 --- !u!1001 &369097
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4073,6 +4074,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ed0d53bff53cd7a4182b1cd7eb6b7802, type: 3}
+=======
+>>>>>>> Stashed changes
 --- !u!1 &1196811002
 GameObject:
   m_ObjectHideFlags: 0
@@ -4083,7 +4086,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1196811004}
   - component: {fileID: 1196811003}
+<<<<<<< Updated upstream
   - component: {fileID: 1196811005}
+=======
+>>>>>>> Stashed changes
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -4171,6 +4177,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+<<<<<<< Updated upstream
 --- !u!114 &1196811005
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6493,6 +6500,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+=======
+>>>>>>> Stashed changes
 --- !u!1 &1759083006
 GameObject:
   m_ObjectHideFlags: 0
@@ -6504,7 +6513,10 @@ GameObject:
   - component: {fileID: 1759083009}
   - component: {fileID: 1759083008}
   - component: {fileID: 1759083007}
+<<<<<<< Updated upstream
   - component: {fileID: 1759083010}
+=======
+>>>>>>> Stashed changes
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -6579,12 +6591,18 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1759083006}
   serializedVersion: 2
+<<<<<<< Updated upstream
   m_LocalRotation: {x: 0.28586835, y: 0.26286513, z: -0.0792647, w: 0.91809493}
   m_LocalPosition: {x: -329.1, y: 401.2, z: -705.1}
+=======
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1, z: -10}
+>>>>>>> Stashed changes
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
+<<<<<<< Updated upstream
   m_LocalEulerAnglesHint: {x: 34.512, y: 32.057, z: 0.33}
 --- !u!114 &1759083010
 MonoBehaviour:
@@ -8890,12 +8908,16 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 499407154429333925, guid: eccddf70dbb7cd243a2f37f4aa5c95d6, type: 3}
   m_PrefabInstance: {fileID: 2138583813}
   m_PrefabAsset: {fileID: 0}
+=======
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> Stashed changes
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1759083009}
   - {fileID: 1196811004}
+<<<<<<< Updated upstream
   - {fileID: 1757197545}
   - {fileID: 1632818970}
   - {fileID: 1945252656}
@@ -8915,3 +8937,5 @@ SceneRoots:
   - {fileID: 1466844008}
   - {fileID: 1989479648}
   - {fileID: 1049277768}
+=======
+>>>>>>> Stashed changes

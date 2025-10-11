@@ -120,7 +120,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             if (Input.GetKeyDown(KeyCode.F))
                 isAwakeButtonPressed = true;
 
-            isGrabButtonPressed = Input.GetKey(KeyCode.G);
+            isGrabButtonPressed = Input.GetMouseButton(0);
         }
     }
 
@@ -350,10 +350,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             Cursor.visible = false;
         }
 
-  transform.name = $"P_{Object.Id}";
+    transform.name = $"P_{Object.Id}";
 
   // PROXIES ONLY: disable physics
-  if (!Object.HasStateAuthority && !Object.HasInputAuthority) {
+    if (!Object.HasStateAuthority && !Object.HasInputAuthority) {
         // Pure proxy
             if (mainJoint) Destroy(mainJoint);
             rigidbody3D.isKinematic = true;
@@ -366,11 +366,19 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         var shroom = GetComponentInChildren<ShroomCustomizerMPB>(true);
         if (shroom) shroom.Reapply();
 
-        if (Object.HasStateAuthority) {
+        if (Object.HasStateAuthority)
+        {
             if (Hp <= 0) { Hp = maxHp; IsDead = false; }
             yawDeg = transform.eulerAngles.y;
             pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
             if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
+        }
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+        {
+            var mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(mpb);
+            mpb.SetFloat("_LocalFadeOn", Object.HasInputAuthority ? 1f : 0f);
+            r.SetPropertyBlock(mpb);
         }
     }
 

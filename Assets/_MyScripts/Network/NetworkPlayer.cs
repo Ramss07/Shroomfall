@@ -16,6 +16,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] Transform cameraAnchor;
 
     //Stamina
+    [Header("Stamina Settings")]
     [SerializeField] float maxStamina = 100f;
     [SerializeField] float sprintDrainPerSec = 20f;   // drain while sprinting
     [SerializeField] float regenPerSec       = 15f;   // regen when not sprinting
@@ -28,7 +29,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     public float StaminaPercent => maxStamina <= 0f ? 0f : Stamina / maxStamina;
 
 
-    //Health
+    // Health
+    [Header("Health Settings")]
     [SerializeField] private int maxHp = 100;
     [Networked] public int Hp { get; set; }
     [Networked] public NetworkBool IsDead { get; set; }
@@ -92,7 +94,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     // Timing
     float lastTimeBecameRagdoll = 0;
 
-    //Grabhandler
+    // Grabhandler
     HandGrabHandler[] handGrabHandlers;
 
     void Awake()
@@ -101,16 +103,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         handGrabHandlers = GetComponentsInChildren<HandGrabHandler>();
 
         if (!mainJoint) mainJoint = GetComponent<ConfigurableJoint>();
-
-        // Auto-pick a head/neck joint if not assigned
-        if (!headJoint)
-        {
-            foreach (var j in GetComponentsInChildren<ConfigurableJoint>(true))
-            {
-                string n = j.name.ToLowerInvariant();
-                if (n.Contains("head") || n.Contains("neck")) { headJoint = j; break; }
-            }
-        }
     }
     
     void Start()
@@ -122,7 +114,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
     void Update()
     {
-        // ---- InputAuthority only: sample raw inputs ----
+        // -------------------- InputAuthority only: sample raw inputs -------------------
         if (Object.HasInputAuthority)
         {
             moveInputVector.x = Input.GetAxis("Horizontal");
@@ -152,7 +144,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         float localForwardVelocity = 0;
 
 
-            // Grounding
+            // --------------- StateAuthority only: simulate physics ---------------
             isGrounded = false;
             int numberOfHits = Physics.SphereCastNonAlloc(
                 rigidbody3D.position, 0.1f, -transform.up, raycastHits, 0.5f
@@ -174,7 +166,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         if (GetInput(out NetworkInputData networkInputData))
         {
 
-            // Mouse look
+            //----------------------Mouse look-----------------------
             if (isActiveRagdoll)
             {
                 yawDeg += networkInputData.lookDelta.x * mouseXSens;
@@ -200,6 +192,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 }
             }
 
+            //-------------------------Stamina & Sprinting---------------------------
             bool hasStartStamina = Stamina >= minStartStamina;
             bool wantsSprint = networkInputData.isSprinting && networkInputData.movementInput.sqrMagnitude > 0.01f;
 
@@ -220,11 +213,16 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 // in air outside grace: can only KEEP sprint if already active and still held
                 sprintActive = sprintActive && networkInputData.isSprinting;
             }
-                
-             // Stamina drain / regen
+
+            // Stamina drain / regen
             float dt = (float)Runner.DeltaTime;
 
-            if (sprintActive)
+            bool shouldDrain = isGrounded
+                   && sprintActive
+                   && networkInputData.isSprinting
+                   && networkInputData.movementInput.sqrMagnitude > 0.01f;
+
+            if (shouldDrain)
             {
                 // drain while sprinting
                 Stamina = Mathf.Max(0f, Stamina - sprintDrainPerSec * dt);
@@ -237,12 +235,12 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             }
             else
             {
-                // not sprinting: regen after delay
-                if (Runner.SimulationTime >= staminaRegenAllowedAt)
+                bool canRegenNow = isGrounded && (Runner.SimulationTime >= staminaRegenAllowedAt);
+                if (canRegenNow)
                     Stamina = Mathf.Min(maxStamina, Stamina + regenPerSec * dt);
             }
 
-            // Movement & jump
+            // --------------------- Movement ------------------------
             float inputMagnitude = networkInputData.movementInput.magnitude;
             isGrabbingActive = networkInputData.isGrabPressed;
 
@@ -267,7 +265,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                         rigidbody3D.AddForce(moveDir * 30f, ForceMode.Acceleration);
                 }
 
-                // Jump
+                // -------------------------- Jumping ------------------------
                 if (isGrounded && networkInputData.isJumpPressed)
                 {
                     rigidbody3D.AddForce(Vector3.up * 30f, ForceMode.Impulse);
@@ -281,6 +279,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                     rigidbody3D.AddForce(-horizVel * 3f, ForceMode.Acceleration);
                 }
             }
+
             else
             {
                 // We are in full ragdoll. Only allow stand-up if NOT dead.
@@ -289,6 +288,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             }
         }
 
+        // ----------------- Animation -----------------
         if (Object.HasStateAuthority)
         {
             animator.SetFloat("movementSpeed", localForwardVelocity * 0.4f);
@@ -313,7 +313,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             }
         }
     }
-
     public override void Render()
     {
         if (!Object.HasStateAuthority)
@@ -360,7 +359,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         return networkInputData;
     }
-
     public void OnPlayerBodyPartHit(int damage, Vector3 impulseDir, Rigidbody hitBody)
     {
         if (!Object.HasStateAuthority || IsDead) return;

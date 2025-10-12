@@ -15,6 +15,18 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] Animator animator;
     [SerializeField] Transform cameraAnchor;
 
+    //Stamina
+    [SerializeField] float maxStamina = 100f;
+    [SerializeField] float sprintDrainPerSec = 20f;   // drain while sprinting
+    [SerializeField] float regenPerSec       = 15f;   // regen when not sprinting
+    [SerializeField] float regenDelaySeconds = 0.5f;  // delay after sprint stops before regen
+    [SerializeField] float minStartStamina = 10f;   // must have this to (re)start sprint
+    
+
+    [Networked] public float Stamina { get; set; }
+    double staminaRegenAllowedAt = 0;
+    public float StaminaPercent => maxStamina <= 0f ? 0f : Stamina / maxStamina;
+
 
     //Health
     [SerializeField] private int maxHp = 100;
@@ -45,6 +57,12 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
     // Controller settings
     float maxSpeed = 3;
+    [SerializeField] float sprintMultiplier = 1.6f; // 60% faster
+    bool sprintActive = false; // latched sprint state used for movement
+
+    [SerializeField] float sprintGraceSeconds = 0.12f; // how long after releasing sprint can you still sprint
+    double sprintAllowedUntil = 0; // time until which sprint is allowed
+
 
     // States
     bool isGrounded = false;
@@ -52,6 +70,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     public bool IsActiveRagdoll => isActiveRagdoll;
     bool isGrabbingActive = false;
     public bool IsGrabbingActive => isGrabbingActive;
+    bool isSprintHeld = false;
+
 
     // Raycasts
     RaycastHit[] raycastHits = new RaycastHit[10];
@@ -121,6 +141,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 isAwakeButtonPressed = true;
 
             isGrabButtonPressed = Input.GetMouseButton(0);
+
+            isSprintHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
         }
     }
 
@@ -143,6 +165,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
             localForwardVelocity = localVelocifyVsForward.magnitude;
+            if (isGrounded)
+            {
+                sprintAllowedUntil = Runner.SimulationTime + sprintGraceSeconds;
+            }
         
 
         if (GetInput(out NetworkInputData networkInputData))
@@ -174,6 +200,48 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 }
             }
 
+            bool hasStartStamina = Stamina >= minStartStamina;
+            bool wantsSprint = networkInputData.isSprinting && networkInputData.movementInput.sqrMagnitude > 0.01f;
+
+            if (isGrounded || Runner.SimulationTime <= sprintAllowedUntil)
+            {
+                if(!sprintActive)
+                {
+                    sprintActive = wantsSprint && hasStartStamina;
+                }
+                else
+                {
+                    // already sprinting: can keep sprinting as long as held and have stamina
+                    sprintActive = wantsSprint && Stamina > 0f;
+                }
+            }
+            else
+            {
+                // in air outside grace: can only KEEP sprint if already active and still held
+                sprintActive = sprintActive && networkInputData.isSprinting;
+            }
+                
+             // Stamina drain / regen
+            float dt = (float)Runner.DeltaTime;
+
+            if (sprintActive)
+            {
+                // drain while sprinting
+                Stamina = Mathf.Max(0f, Stamina - sprintDrainPerSec * dt);
+
+                // when we sprint, push back regen start time
+                staminaRegenAllowedAt = Runner.SimulationTime + regenDelaySeconds;
+
+                // if we ran out mid-air or mid-tick, immediately drop sprint
+                if (Stamina <= 0f) sprintActive = false;
+            }
+            else
+            {
+                // not sprinting: regen after delay
+                if (Runner.SimulationTime >= staminaRegenAllowedAt)
+                    Stamina = Mathf.Min(maxStamina, Stamina + regenPerSec * dt);
+            }
+
             // Movement & jump
             float inputMagnitude = networkInputData.movementInput.magnitude;
             isGrabbingActive = networkInputData.isGrabPressed;
@@ -193,7 +261,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 {
                     moveDir.Normalize();
                     Vector3 vel = rigidbody3D.linearVelocity; vel.y = 0f;
-                    if (vel.magnitude < maxSpeed)
+
+                    float speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
+                    if (vel.magnitude < speedNow)
                         rigidbody3D.AddForce(moveDir * 30f, ForceMode.Acceleration);
                 }
 
@@ -275,7 +345,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         networkInputData.movementInput = moveInputVector;
         networkInputData.lookDelta     = lookDelta;
-        networkInputData.aimYawDeg     = visualYawDeg;
+        networkInputData.aimYawDeg = visualYawDeg;
+
+        networkInputData.isSprinting = isSprintHeld;
 
         if (isJumpButtonPressed) networkInputData.isJumpPressed = true;
         if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
@@ -352,8 +424,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
     transform.name = $"P_{Object.Id}";
 
-  // PROXIES ONLY: disable physics
-    if (!Object.HasStateAuthority && !Object.HasInputAuthority) {
+        // PROXIES ONLY: disable physics
+        if (!Object.HasStateAuthority && !Object.HasInputAuthority) 
+        {
         // Pure proxy
             if (mainJoint) Destroy(mainJoint);
             rigidbody3D.isKinematic = true;
@@ -368,6 +441,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (Object.HasStateAuthority)
         {
+            if (Stamina <= 0f) Stamina = maxStamina;
             if (Hp <= 0) { Hp = maxHp; IsDead = false; }
             yawDeg = transform.eulerAngles.y;
             pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);

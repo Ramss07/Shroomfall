@@ -661,6 +661,7 @@ MonoBehaviour:
   minPitch: -60
   maxPitch: 70
   headJoint: {fileID: 5109727096454986969}
+  sprintMultiplier: 1.6
   _networkPhysicsSyncedRotations: []
 --- !u!114 &3772735532150111598
 MonoBehaviour:
@@ -1079,9 +1080,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5782344
-  m_Height: 1.2711757
+  m_Height: 1.156474
   m_Direction: 1
-  m_Center: {x: -0.064152695, y: 0.88033414, z: 0.01436722}
+  m_Center: {x: -0.06415267, y: 0.822983, z: 0.014367212}
 --- !u!153 &5041027634868949666
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -1836,9 +1837,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.57308275
-  m_Height: 1.3023087
+  m_Height: 1.1461685
   m_Direction: 1
-  m_Center: {x: 0.0868358, y: 0.88033426, z: 0.014367224}
+  m_Center: {x: 0.0868358, y: 0.8022634, z: 0.014367235}
 --- !u!153 &6043517822005315628
 ConfigurableJoint:
   m_ObjectHideFlags: 0

@@ -652,6 +652,18 @@ MonoBehaviour:
   mainJoint: {fileID: 3613156897432216375}
   animator: {fileID: 5133829718331845763}
   cameraAnchor: {fileID: 1542662376632298535}
+  maxStamina: 100
+  sprintDrainPerSec: 20
+  regenPerSec: 15
+  regenDelaySeconds: 0.5
+  minStartStamina: 10
+  _Stamina: 0
+  sprintMultiplier: 1.6
+  sprintGraceSeconds: 0.12
+  airAccel: 18
+  airBrake: 8
+  airMaxSpeed: 3.2
+  airSideBias: 1
   maxHp: 100
   _Hp: 0
   _IsDead:
@@ -661,7 +673,6 @@ MonoBehaviour:
   minPitch: -60
   maxPitch: 70
   headJoint: {fileID: 5109727096454986969}
-  sprintMultiplier: 1.6
   _networkPhysicsSyncedRotations: []
 --- !u!114 &3772735532150111598
 MonoBehaviour:
@@ -1079,10 +1090,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5782344
-  m_Height: 1.156474
+  m_Radius: 0.45725662
+  m_Height: 1.0565035
   m_Direction: 1
-  m_Center: {x: -0.06415267, y: 0.822983, z: 0.014367212}
+  m_Center: {x: -0.064262845, y: 0.87296593, z: 0.014367283}
 --- !u!153 &5041027634868949666
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -1836,10 +1847,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.57308275
-  m_Height: 1.1461685
+  m_Radius: 0.4583077
+  m_Height: 1.0414436
   m_Direction: 1
-  m_Center: {x: 0.0868358, y: 0.8022634, z: 0.014367235}
+  m_Center: {x: 0.09125059, y: 0.8546259, z: 0.01436723}
 --- !u!153 &6043517822005315628
 ConfigurableJoint:
   m_ObjectHideFlags: 0

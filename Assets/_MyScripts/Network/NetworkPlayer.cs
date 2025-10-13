@@ -348,7 +348,28 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         // ----------------- Animation -----------------
         if (Object.HasStateAuthority)
         {
-            animator.SetFloat("movementSpeed", localForwardVelocity * 0.4f);
+        Vector3 v = rigidbody3D.linearVelocity;
+        Vector3 local = transform.InverseTransformDirection(new Vector3(v.x, 0f, v.z));
+
+        float top = Mathf.Max(0.001f, maxSpeed * sprintMultiplier);
+        float fwd   = local.z / top;
+        float right = local.x / top;
+
+        // normalized movement magnitude for transitions
+        float moveMag = Mathf.Clamp01(new Vector2(fwd, right).magnitude);
+
+        // deadzone + damping
+        const float dead = 0.05f;
+        if (Mathf.Abs(fwd)   < dead) fwd = 0f;
+        if (Mathf.Abs(right) < dead) right = 0f;
+
+        animator.SetFloat("Forward",  Mathf.Clamp(fwd,  -1f, 1f),  0.1f, Runner.DeltaTime);
+        animator.SetFloat("Right",    Mathf.Clamp(right,-1f, 1f),  0.1f, Runner.DeltaTime);
+        animator.SetFloat("MoveMag",  moveMag);
+
+        // playback speed scales with horizontal speed
+        float horizSpeed = new Vector2(local.x, local.z).magnitude;
+        animator.SetFloat("AnimSpeed", horizSpeed * 0.4f);
 
             // Write bone rotations every tick so proxies can interpolate
             for (int i = 0; i < syncPhysicsObjects.Length; i++)

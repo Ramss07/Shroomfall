@@ -22,12 +22,26 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] float regenPerSec       = 15f;   // regen when not sprinting
     [SerializeField] float regenDelaySeconds = 0.5f;  // delay after sprint stops before regen
     [SerializeField] float minStartStamina = 10f;   // must have this to (re)start sprint
-    
-
     [Networked] public float Stamina { get; set; }
     double staminaRegenAllowedAt = 0;
     public float StaminaPercent => maxStamina <= 0f ? 0f : Stamina / maxStamina;
+    
+    // Controller settings
+    [Header("Movement Settings")]
+    float maxSpeed = 3;
+    [SerializeField] float sprintMultiplier = 1.6f; // 60% faster
+    bool sprintActive = false; // latched sprint state used for movement
+    [SerializeField] float sprintGraceSeconds = 0.12f; // how long after releasing sprint can you still sprint
+    double sprintAllowedUntil = 0; // time until which sprint is allowed
 
+    // Air Control
+    [Header("Air Control Settings")]
+    [SerializeField] float airAccel = 18f;         // how quickly you can steer in air (VelocityChange units/sec)
+    [SerializeField] float airBrake = 8f;          // braking when pushing opposite direction
+    [SerializeField] float airMaxSpeed = 3.2f;     // cap for building speed in air (keep momentum if already higher)
+    [SerializeField] float airSideBias = 1.0f;     // 1=even; lower reduces strafe authority vs forward
+    bool wasGroundedLastTick = false;
+    float takeoffHorizSpeed = 0f;
 
     // Health
     [Header("Health Settings")]
@@ -56,15 +70,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     bool isJumpButtonPressed = false;
     bool isAwakeButtonPressed = false;
     bool isGrabButtonPressed = false;
-
-    // Controller settings
-    float maxSpeed = 3;
-    [SerializeField] float sprintMultiplier = 1.6f; // 60% faster
-    bool sprintActive = false; // latched sprint state used for movement
-
-    [SerializeField] float sprintGraceSeconds = 0.12f; // how long after releasing sprint can you still sprint
-    double sprintAllowedUntil = 0; // time until which sprint is allowed
-
 
     // States
     bool isGrounded = false;
@@ -157,14 +162,24 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
             localForwardVelocity = localVelocifyVsForward.magnitude;
-            if (isGrounded)
-            {
-                sprintAllowedUntil = Runner.SimulationTime + sprintGraceSeconds;
-            }
-        
+        if (isGrounded)
+        {
+            sprintAllowedUntil = Runner.SimulationTime + sprintGraceSeconds;
+        }
+        Vector3 horizNowV = new Vector3(rigidbody3D.linearVelocity.x, 0f, rigidbody3D.linearVelocity.z);
+
+        if (wasGroundedLastTick && !isGrounded) {
+            // Took off this tick: remember horizontal speed
+            takeoffHorizSpeed = horizNowV.magnitude;
+        } else if (!wasGroundedLastTick && isGrounded) {
+            // Landed: reset
+            takeoffHorizSpeed = 0f;
+        }
+        wasGroundedLastTick = isGrounded;
 
         if (GetInput(out NetworkInputData networkInputData))
         {
+            float df = (float)Runner.DeltaTime;
 
             //----------------------Mouse look-----------------------
             if (isActiveRagdoll)
@@ -258,12 +273,54 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 if (moveDir.sqrMagnitude > 0.0001f)
                 {
                     moveDir.Normalize();
-                    Vector3 vel = rigidbody3D.linearVelocity; vel.y = 0f;
 
-                    float speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
-                    if (vel.magnitude < speedNow)
-                        rigidbody3D.AddForce(moveDir * 30f, ForceMode.Acceleration);
+                    // Current horizontal velocity and ground target speed
+                    Vector3 vel3  = rigidbody3D.linearVelocity;
+                    Vector3 horiz = new Vector3(vel3.x, 0f, vel3.z);
+                    float   speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
+
+                    if (isGrounded)
+                    {
+                        // --- Ground: nudge toward desired run/sprint velocity
+                        Vector3 desired = moveDir * speedNow;
+                        float maxAccel = 50f;                   // tune if you want snappier ground starts
+                        Vector3 deltaV = Vector3.ClampMagnitude(desired - horiz, maxAccel * df);
+                        rigidbody3D.AddForce(deltaV, ForceMode.VelocityChange);
+                    }
+                    else
+                    {
+                        // --------------------------- Air control ---------------------------
+                        Vector3 moveDirSideBias = (moveDir.z * Vector3.forward) + (moveDir.x * airSideBias * Vector3.right);
+                        moveDirSideBias.Normalize();
+
+                        float targetBuild = Mathf.Min(speedNow, airMaxSpeed);
+
+                        // Never pick a desired slower than what you had at takeoff
+                        float desiredMag  = Mathf.Max(horiz.magnitude, takeoffHorizSpeed, targetBuild);
+                        Vector3 desired   = moveDirSideBias * desiredMag;
+
+                        
+                        Vector3 add = desired - horiz;
+
+                        // If steering mostly opposite current motion, use softer brake accel
+                        float oppose = (horiz.sqrMagnitude > 0.0001f)
+                            ? Vector3.Dot(add.normalized, horiz.normalized)
+                            : 1f;
+
+                        float perTick = ((oppose < -0.25f) ? airBrake : airAccel) * df;
+                        Vector3 deltaV = Vector3.ClampMagnitude(add, perTick);
+
+                        float keepCap = Mathf.Max(airMaxSpeed, takeoffHorizSpeed);
+                        if (horiz.magnitude >= keepCap && Vector3.Dot(deltaV, horiz) > 0f)
+                        {
+                            Vector3 along = Vector3.Project(deltaV, horiz.normalized);
+                            deltaV -= along;
+                        }
+
+                        rigidbody3D.AddForce(deltaV, ForceMode.VelocityChange);
+                    }
                 }
+
 
                 // -------------------------- Jumping ------------------------
                 if (isGrounded && networkInputData.isJumpPressed)

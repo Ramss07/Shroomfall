@@ -1,6 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI;            // only needed if you wire optional labels/images
-// using TMPro;                  // uncomment if you use TMP labels
+using UnityEngine.UI;
 
 public class CustomizerUI_Sliders : MonoBehaviour
 {
@@ -11,33 +10,29 @@ public class CustomizerUI_Sliders : MonoBehaviour
     public HueSlider bodyHue;   // pastel body
     public HueSlider capHue;    // full-sat cap
 
-    [Range(0f,1f)] public float bodySaturation = 0.35f; // pastel feel
+    [Range(0f, 1f)] public float bodySaturation = 0.35f;
 
-    // ---- indices we keep for Prev/Next ----
     [Header("Selections (runtime)")]
     public int eyesIdx = 0;
     public int mouthIdx = 0;
 
-    // (Optional) UI readouts if you want to show names/counters
-    // public TextMeshProUGUI eyesLabel;
-    // public TextMeshProUGUI mouthLabel;
-
     void Awake()
     {
-        // Hue → live color
-        if (bodyHue) bodyHue.onHueChanged += h =>
-            shroom.SetBodyColor(Color.HSVToRGB(h, bodySaturation, 1f));
-        if (capHue)  capHue.onHueChanged  += h =>
-            shroom.SetCapColor(Color.HSVToRGB(h, 1f, 1f)); // band auto-follows
+        if (bodyHue)
+            bodyHue.onHueChanged += h =>
+                shroom.PreviewBodyColor(Color.HSVToRGB(h, bodySaturation, 1f));
 
-        // Initialize selections
+        if (capHue)
+            capHue.onHueChanged += h =>
+                shroom.PreviewCapColor(Color.HSVToRGB(h, 1f, 1f));
+
         ApplyEyes(eyesIdx);
         ApplyMouth(mouthIdx);
     }
 
     // ---------- Eyes ----------
-    public void NextEyes() { ShiftEyes(+1); }
-    public void PrevEyes() { ShiftEyes(-1); }
+    public void NextEyes() => ShiftEyes(+1);
+    public void PrevEyes() => ShiftEyes(-1);
 
     void ShiftEyes(int delta)
     {
@@ -47,15 +42,11 @@ public class CustomizerUI_Sliders : MonoBehaviour
         ApplyEyes(eyesIdx);
     }
 
-    void ApplyEyes(int i)
-    {
-        shroom.SetEyesIndex(i);
-        // if (eyesLabel) eyesLabel.text = $"Eyes {i+1}/{shroom.eyeVariants.Length}";
-    }
+    void ApplyEyes(int i) => shroom.SetEyesIndex(i);
 
     // ---------- Mouth ----------
-    public void NextMouth() { ShiftMouth(+1); }
-    public void PrevMouth() { ShiftMouth(-1); }
+    public void NextMouth() => ShiftMouth(+1);
+    public void PrevMouth() => ShiftMouth(-1);
 
     void ShiftMouth(int delta)
     {
@@ -65,20 +56,15 @@ public class CustomizerUI_Sliders : MonoBehaviour
         ApplyMouth(mouthIdx);
     }
 
-    void ApplyMouth(int i)
-    {
-        shroom.SetMouthIndex(i);
-        // if (mouthLabel) mouthLabel.text = $"Mouth {i+1}/{shroom.mouthOptions.Length}";
-    }
+    void ApplyMouth(int i) => shroom.SetMouthIndex(i);
 
     // ---------- Helpers ----------
     public void Randomize()
     {
         float hb = Random.value, hc = Random.value;
         if (bodyHue) bodyHue.SetHue(hb);
-        if (capHue)  capHue.SetHue(hc);
+        if (capHue) capHue.SetHue(hc);
 
-        // pick random indices if arrays exist
         if (shroom.eyeVariants != null && shroom.eyeVariants.Length > 0)
             ApplyEyes(Random.Range(0, shroom.eyeVariants.Length));
         if (shroom.mouthOptions != null && shroom.mouthOptions.Length > 0)

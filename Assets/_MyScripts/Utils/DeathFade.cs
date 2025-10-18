@@ -8,6 +8,7 @@ public class DeathFade : MonoBehaviour
     [SerializeField] private Button spectateButton;
     [SerializeField] Image fadeImage;
     [SerializeField] float fadeDuration = 1f;
+    Coroutine fadeRoutine;
 
     void Awake()
     {
@@ -42,13 +43,15 @@ public class DeathFade : MonoBehaviour
 
     public void FadeInBlack()
     {
-        StartCoroutine(FadeTo(1f));
+        if (fadeRoutine != null) StopCoroutine(fadeRoutine);
+        fadeRoutine = StartCoroutine(FadeTo(1f));
     }
 
     public void FadeOutBlack()
     {
+        if (fadeRoutine != null) StopCoroutine(fadeRoutine);
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
-        StartCoroutine(FadeTo(0f));
+        fadeRoutine = StartCoroutine(FadeTo(0f));
     }
 }

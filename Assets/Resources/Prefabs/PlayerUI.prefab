@@ -1131,8 +1131,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0a4d13f4ad053e47ad6292464c6717b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeathFade
+  spectateButton: {fileID: 0}
   fadeImage: {fileID: 4462827974419644093}
-  fadeDuration: 1
+  fadeDuration: 4
 --- !u!1 &9115374683052038401
 GameObject:
   m_ObjectHideFlags: 0

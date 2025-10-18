@@ -15,6 +15,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] Animator animator;
     [SerializeField] Transform cameraAnchor;
     [SerializeField] DeathFade playerFade;
+    [Networked] public NetworkBool CanLook { get; set; }
 
     //Stamina
     [Header("Stamina Settings")]
@@ -131,10 +132,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             moveInputVector.y = Input.GetAxis("Vertical");
 
             // Mouse (accumulate; Fusion will drain once per tick)
-            lookDelta.x -= Input.GetAxisRaw("Mouse X");
-            lookDelta.y += Input.GetAxisRaw("Mouse Y");
-            visualYawDeg += Input.GetAxisRaw("Mouse X") * mouseXSens;
-            visualYawDeg = Mathf.DeltaAngle(0f, visualYawDeg);
+            if(CanLook)
+            {
+                lookDelta.x -= Input.GetAxisRaw("Mouse X");
+                lookDelta.y += Input.GetAxisRaw("Mouse Y");
+                visualYawDeg += Input.GetAxisRaw("Mouse X") * mouseXSens;
+                visualYawDeg = Mathf.DeltaAngle(0f, visualYawDeg);
+            }
 
             if (Input.GetKeyDown(KeyCode.Space))
                 isJumpButtonPressed = true;
@@ -187,7 +191,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             float df = (float)Runner.DeltaTime;
 
             //----------------------Mouse look-----------------------
-            if (isActiveRagdoll)
+            if (CanLook)
             {
                 yawDeg += networkInputData.lookDelta.x * mouseXSens;
                 pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
@@ -473,6 +477,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         lastTimeBecameRagdoll = Runner.SimulationTime;
         isActiveRagdoll = false;
         isGrabbingActive = false;
+        CanLook = false;
     }
 
     void MakeActiveRagdoll()
@@ -491,6 +496,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         isActiveRagdoll = true;
         isGrabbingActive = false;
+        CanLook = true;
     }
 
     public override void Spawned()
@@ -532,6 +538,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             yawDeg = transform.eulerAngles.y;
             pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
             if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
+            CanLook = true;
         }
         foreach (var r in GetComponentsInChildren<Renderer>(true))
         {

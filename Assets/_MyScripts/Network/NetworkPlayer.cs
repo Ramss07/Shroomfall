@@ -14,6 +14,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] ConfigurableJoint mainJoint;
     [SerializeField] Animator animator;
     [SerializeField] Transform cameraAnchor;
+    [SerializeField] DeathFade playerFade;
 
     //Stamina
     [Header("Stamina Settings")]
@@ -112,6 +113,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     
     void Start()
     {
+        if (Object.HasInputAuthority)
+        {
+            playerFade = FindObjectOfType<DeathFade>();
+        }
         // Store original main joint spring for restore
         startSlerpPositionSpring = mainJoint.slerpDrive.positionSpring;
         if (headJoint) headStartLocalRot = headJoint.transform.localRotation;
@@ -339,9 +344,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             else
             {
-                // We are in full ragdoll. Only allow stand-up if NOT dead.
-                if (!IsDead && networkInputData.isAwakeButtonPressed && Runner.SimulationTime - lastTimeBecameRagdoll > 3)
+                // We are in full ragdoll. Only allow stand-up if NOT dead. CURRENTLY CAN STAND UP WHILE DEAD FOR TESTING
+                if (/**!IsDead &&*/ networkInputData.isAwakeButtonPressed && Runner.SimulationTime - lastTimeBecameRagdoll > 3)
                     MakeActiveRagdoll();
+
             }
         }
 
@@ -447,6 +453,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (Hp == 0 && !IsDead)
         {
+            playerFade.FadeInBlack();
             IsDead = true;
             MakeRagdoll();
         }
@@ -471,6 +478,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     void MakeActiveRagdoll()
     {
         if (!Object.HasStateAuthority) return;
+        playerFade.FadeOutBlack();
+        IsDead = false;
+        if (Hp <= 0) Hp = maxHp / 2;
 
         JointDrive jointDrive = mainJoint.slerpDrive;
         jointDrive.positionSpring = startSlerpPositionSpring;

@@ -49,11 +49,11 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: -3
     - _Rim_Power: 2
-    - _WobbleX: 0
-    - _WobbleZ: 0
+    - _WobbleX: 0.00034467227
+    - _WobbleZ: -0.0013814728
     m_Colors:
     - _BottomColor: {r: 1, g: 0, b: 0.906075, a: 1}
-    - _FillAmount: {r: 0.000030517578, g: 32.152054, b: 0, a: 0}
+    - _FillAmount: {r: 36.632507, g: 9.169446, b: -9.768311, a: 0}
     - _FoamColor: {r: 1, g: 0, b: 0.52006483, a: 1}
     - _Rim_Color: {r: 0, g: 1, b: 0.62938833, a: 1}
     - _TopColor: {r: 1, g: 0, b: 0.8535938, a: 1}

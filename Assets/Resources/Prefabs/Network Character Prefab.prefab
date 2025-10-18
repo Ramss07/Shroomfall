@@ -734,6 +734,10 @@ MonoBehaviour:
   cap: {fileID: 2936592674183725490}
   band: {fileID: 3794801889614792613}
   mouthQuad: {fileID: 1421973096916994215}
+  leftBottle: {fileID: 0}
+  rightBottle: {fileID: 0}
+  isBodyChanging: 0
+  isCapChanging: 0
   eyeVariants:
   - {fileID: 1081696719911847992}
   - {fileID: 6134116831774842820}
@@ -757,6 +761,7 @@ MonoBehaviour:
   _capColor: {r: 1, g: 1, b: 1, a: 1}
   _eyeIndex: 0
   _mouthIndex: 0
+  anim: {fileID: 0}
 --- !u!114 &5829652139344147825
 MonoBehaviour:
   m_ObjectHideFlags: 0

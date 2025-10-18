@@ -453,7 +453,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (Hp == 0 && !IsDead)
         {
-            playerFade.FadeInBlack();
+            RpcDeathFade(true);
             IsDead = true;
             MakeRagdoll();
         }
@@ -478,7 +478,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     void MakeActiveRagdoll()
     {
         if (!Object.HasStateAuthority) return;
-        playerFade.FadeOutBlack();
+        RpcDeathFade(false);
         IsDead = false;
         if (Hp <= 0) Hp = maxHp / 2;
 
@@ -546,5 +546,14 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     {
         if (Object.InputAuthority == player)
             Runner.Despawn(Object);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RpcDeathFade(bool fadeIn)
+    {
+        // This runs on the owner's client
+        if (playerFade == null) return;
+        if (fadeIn) playerFade.FadeInBlack();
+        else        playerFade.FadeOutBlack();
     }
 }

@@ -742,19 +742,19 @@ MonoBehaviour:
   isBodyChanging: 0
   isCapChanging: 0
   eyeVariants:
-  - {fileID: 1081696719911847992}
   - {fileID: 6134116831774842820}
+  - {fileID: 1081696719911847992}
   - {fileID: 3591721041215906862}
   - {fileID: 7673377223750826232}
   - {fileID: 6296569559845634176}
   mouthOptions:
-  - {fileID: 2800000, guid: 8ae4ef2fb24cb9642a34a498f2f3352e, type: 3}
-  - {fileID: 2800000, guid: 2e90d5a9e0003bb41b7db165d412bfbb, type: 3}
   - {fileID: 2800000, guid: d4be939170fd4d14cb03fe8b1b78c3a6, type: 3}
+  - {fileID: 2800000, guid: 891b4c5b98d02d34cbf66129d972301c, type: 3}
+  - {fileID: 2800000, guid: 8ae4ef2fb24cb9642a34a498f2f3352e, type: 3}
   - {fileID: 2800000, guid: c48fbb7d5dd5f2146a466605fe5c35e3, type: 3}
   - {fileID: 2800000, guid: 2383ab390a049d44eb7b3102a6c5332b, type: 3}
   - {fileID: 2800000, guid: 3f74cfff29bab3f428811a3b8a6c1980, type: 3}
-  - {fileID: 2800000, guid: 891b4c5b98d02d34cbf66129d972301c, type: 3}
+  - {fileID: 2800000, guid: 2e90d5a9e0003bb41b7db165d412bfbb, type: 3}
   - {fileID: 2800000, guid: 95419261fc05f684f8b5d60038a3eae9, type: 3}
   - {fileID: 2800000, guid: d059b9c435bab854ba5ed0c2b3b02fb0, type: 3}
   - {fileID: 2800000, guid: b5a5f8371ecfdac4f9c63b7ff9bdd316, type: 3}

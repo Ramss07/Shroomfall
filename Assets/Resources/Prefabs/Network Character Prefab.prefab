@@ -445,6 +445,7 @@ GameObject:
   - component: {fileID: 8378153105380001283}
   - component: {fileID: 6081930473355302252}
   - component: {fileID: 5829652139344147825}
+  - component: {fileID: -2127320898907118762}
   m_Layer: 0
   m_Name: Network Character Prefab
   m_TagString: Untagged
@@ -694,6 +695,7 @@ MonoBehaviour:
   - {fileID: 2095321955399542329}
   - {fileID: 8378153105380001283}
   - {fileID: 5829652139344147825}
+  - {fileID: -2127320898907118762}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &8378153105380001283
 MonoBehaviour:
@@ -734,6 +736,10 @@ MonoBehaviour:
   cap: {fileID: 2936592674183725490}
   band: {fileID: 3794801889614792613}
   mouthQuad: {fileID: 1421973096916994215}
+  leftBottle: {fileID: 0}
+  rightBottle: {fileID: 0}
+  isBodyChanging: 0
+  isCapChanging: 0
   eyeVariants:
   - {fileID: 1081696719911847992}
   - {fileID: 6134116831774842820}
@@ -757,6 +763,7 @@ MonoBehaviour:
   _capColor: {r: 1, g: 1, b: 1, a: 1}
   _eyeIndex: 0
   _mouthIndex: 0
+  anim: {fileID: 0}
 --- !u!114 &5829652139344147825
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -774,6 +781,22 @@ MonoBehaviour:
   _MouthIndex: 0
   _BodyRGBA: 0
   _CapRGBA: 0
+--- !u!114 &-2127320898907118762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4370070096538356045}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fbeb8e69f8aa5944a6185375c2d90c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
+  interactionDistance: 3
+  portalLayer:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!1 &5161597256027557516
 GameObject:
   m_ObjectHideFlags: 0

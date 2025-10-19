@@ -19,13 +19,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [Header("Stamina Settings")]
     [SerializeField] float maxStamina = 100f;
     [SerializeField] float sprintDrainPerSec = 20f;   // drain while sprinting
-    [SerializeField] float regenPerSec       = 15f;   // regen when not sprinting
+    [SerializeField] float regenPerSec = 15f;   // regen when not sprinting
     [SerializeField] float regenDelaySeconds = 0.5f;  // delay after sprint stops before regen
     [SerializeField] float minStartStamina = 10f;   // must have this to (re)start sprint
     [Networked] public float Stamina { get; set; }
     double staminaRegenAllowedAt = 0;
     public float StaminaPercent => maxStamina <= 0f ? 0f : Stamina / maxStamina;
-    
+
     // Controller settings
     [Header("Movement Settings")]
     float maxSpeed = 3;
@@ -109,7 +109,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (!mainJoint) mainJoint = GetComponent<ConfigurableJoint>();
     }
-    
+
     void Start()
     {
         // Store original main joint spring for restore
@@ -149,29 +149,33 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         float localForwardVelocity = 0;
 
 
-            // --------------- StateAuthority only: simulate physics ---------------
-            isGrounded = false;
-            int numberOfHits = Physics.SphereCastNonAlloc(
-                rigidbody3D.position, 0.1f, -transform.up, raycastHits, 0.5f
-            );
-            for (int i = 0; i < numberOfHits; i++) {
-                if (raycastHits[i].transform.root == transform) continue;
-                isGrounded = true; break;
-            }
-            if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration);
+        // --------------- StateAuthority only: simulate physics ---------------
+        isGrounded = false;
+        int numberOfHits = Physics.SphereCastNonAlloc(
+            rigidbody3D.position, 0.1f, -transform.up, raycastHits, 0.5f
+        );
+        for (int i = 0; i < numberOfHits; i++)
+        {
+            if (raycastHits[i].transform.root == transform) continue;
+            isGrounded = true; break;
+        }
+        if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration);
 
-            localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
-            localForwardVelocity = localVelocifyVsForward.magnitude;
+        localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
+        localForwardVelocity = localVelocifyVsForward.magnitude;
         if (isGrounded)
         {
             sprintAllowedUntil = Runner.SimulationTime + sprintGraceSeconds;
         }
         Vector3 horizNowV = new Vector3(rigidbody3D.linearVelocity.x, 0f, rigidbody3D.linearVelocity.z);
 
-        if (wasGroundedLastTick && !isGrounded) {
+        if (wasGroundedLastTick && !isGrounded)
+        {
             // Took off this tick: remember horizontal speed
             takeoffHorizSpeed = horizNowV.magnitude;
-        } else if (!wasGroundedLastTick && isGrounded) {
+        }
+        else if (!wasGroundedLastTick && isGrounded)
+        {
             // Landed: reset
             takeoffHorizSpeed = 0f;
         }
@@ -213,7 +217,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             if (isGrounded || Runner.SimulationTime <= sprintAllowedUntil)
             {
-                if(!sprintActive)
+                if (!sprintActive)
                 {
                     sprintActive = wantsSprint && hasStartStamina;
                 }
@@ -275,9 +279,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                     moveDir.Normalize();
 
                     // Current horizontal velocity and ground target speed
-                    Vector3 vel3  = rigidbody3D.linearVelocity;
+                    Vector3 vel3 = rigidbody3D.linearVelocity;
                     Vector3 horiz = new Vector3(vel3.x, 0f, vel3.z);
-                    float   speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
+                    float speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
 
                     if (isGrounded)
                     {
@@ -296,10 +300,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                         float targetBuild = Mathf.Min(speedNow, airMaxSpeed);
 
                         // Never pick a desired slower than what you had at takeoff
-                        float desiredMag  = Mathf.Max(horiz.magnitude, takeoffHorizSpeed, targetBuild);
-                        Vector3 desired   = moveDirSideBias * desiredMag;
+                        float desiredMag = Mathf.Max(horiz.magnitude, takeoffHorizSpeed, targetBuild);
+                        Vector3 desired = moveDirSideBias * desiredMag;
 
-                        
+
                         Vector3 add = desired - horiz;
 
                         // If steering mostly opposite current motion, use softer brake accel
@@ -348,28 +352,28 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         // ----------------- Animation -----------------
         if (Object.HasStateAuthority)
         {
-        Vector3 v = rigidbody3D.linearVelocity;
-        Vector3 local = transform.InverseTransformDirection(new Vector3(v.x, 0f, v.z));
+            Vector3 v = rigidbody3D.linearVelocity;
+            Vector3 local = transform.InverseTransformDirection(new Vector3(v.x, 0f, v.z));
 
-        float top = Mathf.Max(0.001f, maxSpeed * sprintMultiplier);
-        float fwd   = local.z / top;
-        float right = local.x / top;
+            float top = Mathf.Max(0.001f, maxSpeed * sprintMultiplier);
+            float fwd = local.z / top;
+            float right = local.x / top;
 
-        // normalized movement magnitude for transitions
-        float moveMag = Mathf.Clamp01(new Vector2(fwd, right).magnitude);
+            // normalized movement magnitude for transitions
+            float moveMag = Mathf.Clamp01(new Vector2(fwd, right).magnitude);
 
-        // deadzone + damping
-        const float dead = 0.05f;
-        if (Mathf.Abs(fwd)   < dead) fwd = 0f;
-        if (Mathf.Abs(right) < dead) right = 0f;
+            // deadzone + damping
+            const float dead = 0.05f;
+            if (Mathf.Abs(fwd) < dead) fwd = 0f;
+            if (Mathf.Abs(right) < dead) right = 0f;
 
-        animator.SetFloat("Forward",  Mathf.Clamp(fwd,  -1f, 1f),  0.1f, Runner.DeltaTime);
-        animator.SetFloat("Right",    Mathf.Clamp(right,-1f, 1f),  0.1f, Runner.DeltaTime);
-        animator.SetFloat("MoveMag",  moveMag);
+            animator.SetFloat("Forward", Mathf.Clamp(fwd, -1f, 1f), 0.1f, Runner.DeltaTime);
+            animator.SetFloat("Right", Mathf.Clamp(right, -1f, 1f), 0.1f, Runner.DeltaTime);
+            animator.SetFloat("MoveMag", moveMag);
 
-        // playback speed scales with horizontal speed
-        float horizSpeed = new Vector2(local.x, local.z).magnitude;
-        animator.SetFloat("AnimSpeed", horizSpeed * 0.4f);
+            // playback speed scales with horizontal speed
+            float horizSpeed = new Vector2(local.x, local.z).magnitude;
+            animator.SetFloat("AnimSpeed", horizSpeed * 0.4f);
 
             // Write bone rotations every tick so proxies can interpolate
             for (int i = 0; i < syncPhysicsObjects.Length; i++)
@@ -421,19 +425,19 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         NetworkInputData networkInputData = new NetworkInputData();
 
         networkInputData.movementInput = moveInputVector;
-        networkInputData.lookDelta     = lookDelta;
+        networkInputData.lookDelta = lookDelta;
         networkInputData.aimYawDeg = visualYawDeg;
 
         networkInputData.isSprinting = isSprintHeld;
 
         if (isJumpButtonPressed) networkInputData.isJumpPressed = true;
-        if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
+        if (isAwakeButtonPressed) networkInputData.isAwakeButtonPressed = true;
         if (isGrabButtonPressed) networkInputData.isGrabPressed = true;
 
         // Reset one-shots each tick
-        isJumpButtonPressed  = false;
+        isJumpButtonPressed = false;
         isAwakeButtonPressed = false;
-        lookDelta            = Vector2.zero;
+        lookDelta = Vector2.zero;
 
         return networkInputData;
     }
@@ -483,6 +487,28 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         isGrabbingActive = false;
     }
 
+    [Networked]
+    public PortalController VotedForPortal { get; set; }
+
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_CastVote(PortalController newPortal, RpcInfo info = default)
+    {
+        // check if previous vote and it's different from new one
+        if (VotedForPortal != null && VotedForPortal != newPortal)
+        {
+            // remove their old vote
+            VotedForPortal.RemoveVote(info.Source);
+        }
+
+        // add the new vote to target portal
+        newPortal.AddVote(info.Source);
+
+        // update this player's state to new vote
+        VotedForPortal = newPortal;
+    }
+
+    
     public override void Spawned()
     {
         if (Object.HasInputAuthority)
@@ -490,23 +516,26 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             Local = this;
             cinemachineVirtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             cinemachineBrain = FindObjectOfType<CinemachineBrain>();
-            if (cameraAnchor != null) {
-            cinemachineVirtualCamera.m_Follow = cameraAnchor;
-            cinemachineVirtualCamera.m_LookAt = cameraAnchor;
+            if (cameraAnchor != null)
+            {
+                cinemachineVirtualCamera.m_Follow = cameraAnchor;
+                cinemachineVirtualCamera.m_LookAt = cameraAnchor;
             }
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
 
-    transform.name = $"P_{Object.Id}";
+        transform.name = $"P_{Object.Id}";
 
         // PROXIES ONLY: disable physics
-        if (!Object.HasStateAuthority && !Object.HasInputAuthority) 
+        if (!Object.HasStateAuthority && !Object.HasInputAuthority)
         {
-        // Pure proxy
+            // Pure proxy
             if (mainJoint) Destroy(mainJoint);
             rigidbody3D.isKinematic = true;
-        } else {
+        }
+        else
+        {
             // Host or Local Client: must simulate physics for prediction
             rigidbody3D.isKinematic = false;
             rigidbody3D.interpolation = RigidbodyInterpolation.None; // let Fusion drive timing

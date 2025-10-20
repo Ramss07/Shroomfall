@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5814797817279676095}
   - component: {fileID: 4752598322561806972}
-  - component: {fileID: 1771549954483693531}
   - component: {fileID: 1908075743608998918}
   - component: {fileID: 6025709105045443297}
   - component: {fileID: -4675595636474380026}
@@ -52,18 +51,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NetworkRunnerHandler
   joinErrorLabel: {fileID: 0}
   networkRunnerPrefab: {fileID: 7685064650062060637, guid: a10b9907f62a4ff4d8148f757ed5c0ac, type: 3}
---- !u!114 &1771549954483693531
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9166977370901655788}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1199893898, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkRunner
 --- !u!114 &1908075743608998918
 MonoBehaviour:
   m_ObjectHideFlags: 0

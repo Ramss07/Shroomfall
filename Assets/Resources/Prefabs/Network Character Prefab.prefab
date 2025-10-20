@@ -1016,6 +1016,34 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9919556
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.12640521
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.0022194686
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.0064005856
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -14.525
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0.165
+      objectReference: {fileID: 0}
+    - target: {fileID: 4582277379452294679, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0.718
+      objectReference: {fileID: 0}
     - target: {fileID: 6571383489752443165, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_IsActive
       value: 1
@@ -1640,7 +1668,7 @@ ConfigurableJoint:
     bounciness: 0
     contactDistance: 0
   m_AngularZLimit:
-    limit: 60
+    limit: 95
     bounciness: 0
     contactDistance: 0
   m_TargetPosition: {x: 0, y: 0, z: 0}
@@ -2185,7 +2213,7 @@ ConfigurableJoint:
     bounciness: 0
     contactDistance: 0
   m_AngularZLimit:
-    limit: 60
+    limit: 95
     bounciness: 0
     contactDistance: 0
   m_TargetPosition: {x: 0, y: 0, z: 0}

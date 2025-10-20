@@ -1580,6 +1580,30 @@ PrefabInstance:
       propertyPath: liquidBodyFX
       value: 
       objectReference: {fileID: 957912267}
+    - target: {fileID: 8196805755467278968, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+      propertyPath: 'eyeVariants.Array.data[0]'
+      value: 
+      objectReference: {fileID: 682283858}
+    - target: {fileID: 8196805755467278968, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+      propertyPath: 'eyeVariants.Array.data[1]'
+      value: 
+      objectReference: {fileID: 682283857}
+    - target: {fileID: 8196805755467278968, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+      propertyPath: 'mouthOptions.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2800000, guid: d4be939170fd4d14cb03fe8b1b78c3a6, type: 3}
+    - target: {fileID: 8196805755467278968, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+      propertyPath: 'mouthOptions.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2800000, guid: 891b4c5b98d02d34cbf66129d972301c, type: 3}
+    - target: {fileID: 8196805755467278968, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+      propertyPath: 'mouthOptions.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2800000, guid: 8ae4ef2fb24cb9642a34a498f2f3352e, type: 3}
+    - target: {fileID: 8196805755467278968, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+      propertyPath: 'mouthOptions.Array.data[6]'
+      value: 
+      objectReference: {fileID: 2800000, guid: 2e90d5a9e0003bb41b7db165d412bfbb, type: 3}
     - target: {fileID: 8491873121655894694, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
       propertyPath: m_Name
       value: PlayerModel Variant
@@ -1652,6 +1676,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a26e8d336d1e7c045af7a421ea932ce8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShroomCustomizerMPB
+--- !u!1 &682283857 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8811710425831845458, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+  m_PrefabInstance: {fileID: 682283855}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &682283858 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2336044805226903982, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}
+  m_PrefabInstance: {fileID: 682283855}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &682283860 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 9054597481021535735, guid: f146bfe19912ec74fba678895ab4ca75, type: 3}

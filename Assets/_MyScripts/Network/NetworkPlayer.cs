@@ -56,8 +56,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [Header("Look Settings")]
     [SerializeField] float mouseXSens = 2.5f;          // yaw sensitivity
     [SerializeField] float mouseYSens = 2.0f;          // pitch sensitivity
-    [SerializeField] float minPitch = -60f;            // look down limit
-    [SerializeField] float maxPitch = 70f;             // look up limit
+    [SerializeField] float minPitch = -25f;            // look down limit
+    [SerializeField] float maxPitch = 60f;             // look up limit
     [SerializeField] ConfigurableJoint headJoint;
 
     // Runtime aim state
@@ -196,7 +196,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 yawDeg += networkInputData.lookDelta.x * mouseXSens;
                 pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
                 pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
-
+                
                 if (mainJoint)
                 {
                     Vector3 desiredFwd = Quaternion.Euler(0f, yawDeg, 0f) * Vector3.forward;

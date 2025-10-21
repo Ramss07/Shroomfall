@@ -16,46 +16,81 @@ public class PortalController : NetworkBehaviour
     [Networked] public NetworkDictionary<PlayerRef, NetworkBool> PlayersWhoVoted => default;
 
     private ChangeDetector _changeDetector;
+    private int _lastKnownPlayerCount = -1;
 
     public override void Spawned()
     {
         _changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+        _lastKnownPlayerCount = SafePlayerCount();
         UpdateVoteUI();
         HidePrompt();
     }
+
     public override void Render()
     {
+        // Update when VoteCount changes
         foreach (var change in _changeDetector.DetectChanges(this))
         {
-            if (change == nameof(VoteCount)) UpdateVoteUI();
+            if (change == nameof(VoteCount))
+                UpdateVoteUI();
+        }
+
+        // Also update when player count changes (join/leave)
+        int currentCount = SafePlayerCount();
+        if (currentCount != _lastKnownPlayerCount)
+        {
+            _lastKnownPlayerCount = currentCount;
+            UpdateVoteUI();
         }
     }
-    public void ShowPrompt() { promptCanvasGroup.alpha = 1; }
-    public void HidePrompt() { promptCanvasGroup.alpha = 0; }
+
+    public void ShowPrompt()
+    {
+        if (promptCanvasGroup != null) promptCanvasGroup.alpha = 1f;
+    }
+
+    public void HidePrompt()
+    {
+        if (promptCanvasGroup != null) promptCanvasGroup.alpha = 0f;
+    }
+
     private void UpdateVoteUI()
     {
-        if (voteText != null)
+        if (voteText == null) return;
+        voteText.text = $"({VoteCount}/{SafePlayerCount()})";
+    }
+
+    private int SafePlayerCount()
+    {
+        if (Runner == null) return 0;
+
+        // ActivePlayers is authoritative for current players and is IEnumerable<PlayerRef>
+        int active = 0;
+        var enumerable = Runner.ActivePlayers;
+        if (enumerable != null)
         {
-            int playerCount = Runner != null && Runner.SessionInfo != null ? Runner.SessionInfo.PlayerCount : 0;
-            voteText.text = $"({VoteCount}/{playerCount})";
+            foreach (var _ in enumerable)
+                active++;
+            return active;
         }
+
+        // Fallback if needed
+        return (Runner.SessionInfo != null) ? Runner.SessionInfo.PlayerCount : 0;
     }
 
 
-    
     public void AddVote(PlayerRef player)
     {
-        if (!Runner.IsServer) return; // Only the server can change votes
+        if (!Runner.IsServer) return;
 
         if (!PlayersWhoVoted.ContainsKey(player))
         {
             PlayersWhoVoted.Add(player, true);
             VoteCount++;
-            CheckVoteThreshold(); // Check if should teleport
+            CheckVoteThreshold();
         }
     }
 
-   
     public void RemoveVote(PlayerRef player)
     {
         if (!Runner.IsServer) return;
@@ -63,15 +98,17 @@ public class PortalController : NetworkBehaviour
         if (PlayersWhoVoted.ContainsKey(player))
         {
             PlayersWhoVoted.Remove(player);
-            VoteCount--;
+            VoteCount = Mathf.Max(0, VoteCount - 1);
+            // UI will refresh via ChangeDetector + Render polling
         }
     }
 
     private void CheckVoteThreshold()
     {
-        int playerCount = Runner.SessionInfo.PlayerCount;
-        int requiredVotes = (playerCount / 2) + 1;
+        int playerCount = SafePlayerCount();
+        if (playerCount <= 0) return;
 
+        int requiredVotes = (playerCount / 2) + 1;
         if (VoteCount >= requiredVotes)
         {
             Debug.Log($"Vote passed! Teleporting to {TargetSceneName}");

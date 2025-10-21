@@ -1,28 +1,34 @@
 using Fusion;
+using UnityEngine;
 
-public class VotingManager : NetworkBehaviour
+public class VotingManager : NetworkBehaviour, IPlayerLeft
 {
-    [Networked]
-    private NetworkDictionary<PlayerRef, PortalController> PlayerVotes => default;
+    // Which portal each player voted for
+    [Networked] private NetworkDictionary<PlayerRef, PortalController> PlayerVotes => default;
+    
 
-    // This is the RPC the manager needs -> called by the player
+    // Called by the local player to set/change their vote
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_SetPlayerVote(PortalController newPortal, RpcInfo info = default)
     {
-        // Check if the player had a previous vote
-        if (PlayerVotes.TryGet(info.Source, out PortalController oldPortal) && oldPortal != null)
-        {
-            // remove old vote
-            if (oldPortal != newPortal)
-            {
-                oldPortal.RemoveVote(info.Source);
-            }
-        }
+        if (!Object.HasStateAuthority) return;
 
-        // add new vote
+        if (PlayerVotes.TryGet(info.Source, out var oldPortal) && oldPortal != null && oldPortal != newPortal)
+            oldPortal.RemoveVote(info.Source);
+
         newPortal.AddVote(info.Source);
-
-        // Update with new vote
         PlayerVotes.Set(info.Source, newPortal);
+    }
+
+    // IPlayerLeft callback – fires on the object with State Authority
+    public void PlayerLeft(PlayerRef player)
+    {
+        if (!Object.HasStateAuthority) return;
+
+        if (PlayerVotes.TryGet(player, out var portal) && portal != null)
+        {
+            portal.RemoveVote(player);   // decrements VoteCount + removes from PlayersWhoVoted
+            PlayerVotes.Remove(player);  // clear mapping
+        }
     }
 }

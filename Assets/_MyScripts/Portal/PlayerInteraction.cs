@@ -17,9 +17,16 @@ public class PlayerInteraction : NetworkBehaviour
 
     void Update()
     {
-        if (!HasStateAuthority) return;
+        // Local player only
+        if (!Object.HasInputAuthority) return;
 
-        Ray ray = _mainCamera.ScreenPointToRay(new Vector3(Screen.width / 2, Screen.height / 2));
+        if (_mainCamera == null)
+            _mainCamera = Camera.main;
+        if (_mainCamera == null) return;
+
+        Ray ray = _mainCamera.ScreenPointToRay(
+            new Vector3(Screen.width / 2f, Screen.height / 2f));
+
         PortalController detectedPortal = null;
         if (Physics.SphereCast(ray, interactionRadius, out RaycastHit hit, interactionDistance, portalLayer))
         {
@@ -30,26 +37,21 @@ public class PlayerInteraction : NetworkBehaviour
         {
             if (detectedPortal != _currentPortal)
             {
-                _currentPortal?.HidePrompt();
+                _currentPortal?.HidePrompt();  // local-only visual
                 _currentPortal = detectedPortal;
-                _currentPortal.ShowPrompt();
+                _currentPortal.ShowPrompt();   // local-only visual
             }
         }
-        else
+        else if (_currentPortal != null)
         {
-            if (_currentPortal != null)
-            {
-                _currentPortal.HidePrompt();
-                _currentPortal = null;
-            }
+            _currentPortal.HidePrompt();
+            _currentPortal = null;
         }
 
         if (_currentPortal != null && Input.GetKeyDown(KeyCode.E))
         {
             if (NetworkPlayer.Local != null)
-            {
                 NetworkPlayer.Local.RPC_CastVote(_currentPortal);
-            }
         }
     }
 }

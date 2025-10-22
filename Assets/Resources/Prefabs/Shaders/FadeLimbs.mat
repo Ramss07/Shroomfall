@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: LiquidBodyEffect
-  m_Shader: {fileID: -6465566751694194690, guid: d169c98c308f77c4aa80623891d73b2c, type: 3}
+  m_Name: FadeLimbs
+  m_Shader: {fileID: -6465566751694194690, guid: aff430b6b9c875b4980b61860dfe2714, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -16,7 +16,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2997
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
@@ -24,7 +24,7 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _Main_Texture:
+    - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -42,24 +42,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Amplitude: 0.22
-    - _FoamWidth: 0.225
-    - _Foam_Smoothness: 0.16
-    - _Frequency: 2.43
+    - _LocalFadeOn: 1
     - _QueueControl: 0
-    - _QueueOffset: -3
-    - _Rim_Power: 2
-    - _WobbleX: 0.0014829644
-    - _WobbleZ: -0.0002771105
+    - _QueueOffset: 0
+    - _SeeThroughDistance: 0.5
     m_Colors:
-    - _BottomColor: {r: 1, g: 1, b: 1, a: 1}
-    - _FillAmount: {r: -36.75836, g: 35.08882, b: -57.235718, a: 0}
-    - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Rim_Color: {r: 1, g: 1, b: 1, a: 1}
-    - _TopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &1256643098840937493
+--- !u!114 &22585062434431906
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

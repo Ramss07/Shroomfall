@@ -398,8 +398,8 @@
     },
     "m_FragmentContext": {
         "m_Position": {
-            "x": 1042.0001220703125,
-            "y": -964.0001220703125
+            "x": 1407.9998779296875,
+            "y": -1002.0
         },
         "m_Blocks": [
             {
@@ -436,7 +436,7 @@
         "preventRotation": false
     },
     "m_Path": "Shader Graphs",
-    "m_GraphPrecision": 0,
+    "m_GraphPrecision": 2,
     "m_PreviewMode": 2,
     "m_OutputNode": {
         "m_Id": ""

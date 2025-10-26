@@ -6,7 +6,7 @@ public class HandGrabHandler : MonoBehaviour
 {
     [SerializeField] Animator animator;
 
-    // Prefab for the persistent grab marker (set in inspector)
+    // Prefab for the persistent grab marker
     [SerializeField] GameObject grabIndicatorPrefab;
 
     // Fixed joint created when grabbing
@@ -15,7 +15,7 @@ public class HandGrabHandler : MonoBehaviour
     // Our own rigidbody
     Rigidbody rigidbody3D;
 
-    // Spawned indicator instance (world-space, never parented)
+    // Spawned indicator instance
     GameObject grabIndicator;
 
     // References
@@ -24,7 +24,7 @@ public class HandGrabHandler : MonoBehaviour
     public enum HandSide { Left, Right }
     [SerializeField] HandSide side = HandSide.Left;
 
-    // Animator param (per-hand)
+    // Animator param
     int grabParamHash;
 
     void Awake()
@@ -45,7 +45,7 @@ public class HandGrabHandler : MonoBehaviour
         {
             if (animator) animator.SetBool(grabParamHash, true);
 
-            // Keep indicator following the grab point while holding (world space)
+            // Keep indicator following the grab point while holding
             if (fixedJoint != null && grabIndicator != null && fixedJoint.connectedBody != null)
             {
                 grabIndicator.transform.position =

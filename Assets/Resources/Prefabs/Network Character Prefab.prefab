@@ -198,6 +198,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
+  grabIndicatorPrefab: {fileID: 4346238431224586022, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
   side: 1
 --- !u!1 &2240250324045435417
 GameObject:
@@ -397,6 +398,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
+  grabIndicatorPrefab: {fileID: 4346238431224586022, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
   side: 0
 --- !u!1 &2965654943715989812
 GameObject:

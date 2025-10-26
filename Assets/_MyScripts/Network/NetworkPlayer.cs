@@ -16,6 +16,12 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [SerializeField] Transform cameraAnchor;
     [SerializeField] DeathFade playerFade;
     [Networked] public NetworkBool CanLook { get; set; }
+    bool isLeftGrabButtonPressed = false;
+    bool isRightGrabButtonPressed = false;
+
+    [Networked] public NetworkBool IsLeftGrab  { get; set; }
+    [Networked] public NetworkBool IsRightGrab { get; set; }
+
 
     //Stamina
     [Header("Stamina Settings")]
@@ -30,7 +36,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     
     // Controller settings
     [Header("Movement Settings")]
-    float maxSpeed = 3;
+    float maxSpeed = 4;
     [SerializeField] float sprintMultiplier = 1.6f; // 60% faster
     bool sprintActive = false; // latched sprint state used for movement
     [SerializeField] float sprintGraceSeconds = 0.12f; // how long after releasing sprint can you still sprint
@@ -71,14 +77,11 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     Vector2 lookDelta = Vector2.zero;
     bool isJumpButtonPressed = false;
     bool isAwakeButtonPressed = false;
-    bool isGrabButtonPressed = false;
 
     // States
     bool isGrounded = false;
     bool isActiveRagdoll = true;
     public bool IsActiveRagdoll => isActiveRagdoll;
-    bool isGrabbingActive = false;
-    public bool IsGrabbingActive => isGrabbingActive;
     bool isSprintHeld = false;
 
 
@@ -146,9 +149,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             if (Input.GetKeyDown(KeyCode.F))
                 isAwakeButtonPressed = true;
 
-            isGrabButtonPressed = Input.GetMouseButton(0);
-
             isSprintHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+            isLeftGrabButtonPressed  = Input.GetMouseButton(0);
+            isRightGrabButtonPressed = Input.GetMouseButton(1);
         }
     }
 
@@ -156,7 +160,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     {
         Vector3 localVelocifyVsForward = Vector3.zero;
         float localForwardVelocity = 0;
-
 
             // --------------- StateAuthority only: simulate physics ---------------
             isGrounded = false;
@@ -266,7 +269,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             // --------------------- Movement ------------------------
             float inputMagnitude = networkInputData.movementInput.magnitude;
-            isGrabbingActive = networkInputData.isGrabPressed;
+            IsLeftGrab  = networkInputData.isLeftGrabPressed;
+            IsRightGrab = networkInputData.isRightGrabPressed;
 
             if (!IsDead && isActiveRagdoll)
             {
@@ -358,28 +362,45 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         // ----------------- Animation -----------------
         if (Object.HasStateAuthority)
         {
-        Vector3 v = rigidbody3D.linearVelocity;
-        Vector3 local = transform.InverseTransformDirection(new Vector3(v.x, 0f, v.z));
+            Vector3 v = rigidbody3D.linearVelocity;
+            Vector3 local = transform.InverseTransformDirection(new Vector3(v.x, 0f, v.z));
 
-        float top = Mathf.Max(0.001f, maxSpeed * sprintMultiplier);
-        float fwd   = local.z / top;
-        float right = local.x / top;
+            float top = Mathf.Max(0.001f, maxSpeed * sprintMultiplier);
+            float fwd   = local.z / top;
+            float right = local.x / top;
 
-        // normalized movement magnitude for transitions
-        float moveMag = Mathf.Clamp01(new Vector2(fwd, right).magnitude);
+            // normalized movement magnitude for transitions
+            float moveMag = Mathf.Clamp01(new Vector2(fwd, right).magnitude);
 
-        // deadzone + damping
-        const float dead = 0.05f;
-        if (Mathf.Abs(fwd)   < dead) fwd = 0f;
-        if (Mathf.Abs(right) < dead) right = 0f;
+            // deadzone + damping
+            const float dead = 0.05f;
+            if (Mathf.Abs(fwd)   < dead) fwd = 0f;
+            if (Mathf.Abs(right) < dead) right = 0f;
 
-        animator.SetFloat("Forward",  Mathf.Clamp(fwd,  -1f, 1f),  0.1f, Runner.DeltaTime);
-        animator.SetFloat("Right",    Mathf.Clamp(right,-1f, 1f),  0.1f, Runner.DeltaTime);
-        animator.SetFloat("MoveMag",  moveMag);
+            animator.SetFloat("Forward",  Mathf.Clamp(fwd,  -1f, 1f),  0.1f, Runner.DeltaTime);
+            animator.SetFloat("Right",    Mathf.Clamp(right,-1f, 1f),  0.1f, Runner.DeltaTime);
+            animator.SetFloat("MoveMag",  moveMag);
 
-        // playback speed scales with horizontal speed
-        float horizSpeed = new Vector2(local.x, local.z).magnitude;
-        animator.SetFloat("AnimSpeed", horizSpeed * 0.4f);
+            // playback speed scales with horizontal speed
+            float horizSpeed = new Vector2(local.x, local.z).magnitude;
+            animator.SetFloat("AnimSpeed", horizSpeed * 0.4f);
+            float upStart = -2f;   // start raising just above horizon
+            float fullUp  = -10f;  // treat -10° as "fully up" (hits 1.0 early)
+            float t = Mathf.InverseLerp(upStart, fullUp, pitchDeg);
+
+            // Ease-out curve so it climbs quickly to near 1.
+            float y = Mathf.InverseLerp(maxPitch, minPitch, pitchDeg);
+
+            // Optional shaping so it rises quicker but still continuous (use 1f for linear)
+            float shaped = Mathf.Pow(y, 0.7f); // 0.5–0.8 feels good
+
+            // Final raise value: 0.35 at full down, up to 1.0 at full up
+            float raiseVal = Mathf.Lerp(0.35f, 1f, shaped);
+
+            // Per-hand gating (only apply when that button is held)
+            animator.SetFloat("LeftRaise01",  IsLeftGrab  ? raiseVal : 0f);
+            animator.SetFloat("RightRaise01", IsRightGrab ? raiseVal : 0f);
+
 
             // Write bone rotations every tick so proxies can interpolate
             for (int i = 0; i < syncPhysicsObjects.Length; i++)
@@ -438,11 +459,14 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (isJumpButtonPressed) networkInputData.isJumpPressed = true;
         if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
-        if (isGrabButtonPressed) networkInputData.isGrabPressed = true;
+        if (isLeftGrabButtonPressed)  networkInputData.isLeftGrabPressed  = true;
+        if (isRightGrabButtonPressed) networkInputData.isRightGrabPressed = true;
 
         // Reset one-shots each tick
         isJumpButtonPressed  = false;
         isAwakeButtonPressed = false;
+        isLeftGrabButtonPressed  = false;
+        isRightGrabButtonPressed = false;
         lookDelta            = Vector2.zero;
 
         return networkInputData;
@@ -476,7 +500,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         lastTimeBecameRagdoll = Runner.SimulationTime;
         isActiveRagdoll = false;
-        isGrabbingActive = false;
+        IsLeftGrab = false;
+        IsRightGrab = false;
         CanLook = false;
     }
 
@@ -495,7 +520,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             syncPhysicsObjects[i].MakeActiveRagdoll();
 
         isActiveRagdoll = true;
-        isGrabbingActive = false;
+        IsLeftGrab = false;
+        IsRightGrab = false;
         CanLook = true;
     }
 

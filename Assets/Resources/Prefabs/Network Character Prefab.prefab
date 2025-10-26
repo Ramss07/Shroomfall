@@ -198,6 +198,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
+  side: 1
 --- !u!1 &2240250324045435417
 GameObject:
   m_ObjectHideFlags: 0
@@ -396,6 +397,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
+  side: 0
 --- !u!1 &2965654943715989812
 GameObject:
   m_ObjectHideFlags: 0
@@ -2249,6 +2251,10 @@ MonoBehaviour:
   cameraAnchor: {fileID: 1542662376632298535}
   playerFade: {fileID: 0}
   _CanLook:
+    _value: 0
+  _IsLeftGrab:
+    _value: 0
+  _IsRightGrab:
     _value: 0
   maxStamina: 100
   sprintDrainPerSec: 20
@@ -9074,6 +9080,18 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -8884984920518210719, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8884984920518210719, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8884984920518210719, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0
+      objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.3032837
@@ -9209,7 +9227,7 @@ PrefabInstance:
     - target: {fileID: 1630794972795428178, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
-      objectReference: {fileID: 2100000, guid: b546b7038d3aac84b8f0fca79ade75a6, type: 2}
+      objectReference: {fileID: 2100000, guid: a7244d273ab987e41a2e8b552101c958, type: 2}
     - target: {fileID: 2635460834990549039, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -9222,6 +9240,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b7af0391702dfb945a1c3750c970d1a7, type: 2}
+    - target: {fileID: 2838391200542782613, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4105610393669611064, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -13700,8 +13722,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.5436046, y: 1.4287444, z: 3.2593796}
-  m_Center: {x: -0.068330094, y: 1.1766481, z: -0.024280615}
+  m_Size: {x: 3.5436041, y: 0.9893038, z: 3.157663}
+  m_Center: {x: -0.06833003, y: 1.279084, z: -0.075138845}
 --- !u!4 &4327391698964513073 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -5738099386740791124, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}

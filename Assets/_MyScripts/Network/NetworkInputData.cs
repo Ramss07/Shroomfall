@@ -11,4 +11,6 @@ public struct NetworkInputData : INetworkInput
     public float aimYawDeg;
     public NetworkBool isGrabPressed;
     public NetworkBool isSprinting;
+    public bool isLeftGrabPressed;
+    public bool isRightGrabPressed;
 }

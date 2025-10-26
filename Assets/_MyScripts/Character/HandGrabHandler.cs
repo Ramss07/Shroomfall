@@ -1,6 +1,4 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 
 public class HandGrabHandler : MonoBehaviour
 {
@@ -15,101 +13,98 @@ public class HandGrabHandler : MonoBehaviour
     //References
     NetworkPlayer networkPlayer;
 
+    public enum HandSide { Left, Right }
+    [SerializeField] HandSide side;
+
+    // Cached Animator param hash for this hand only
+    int grabParamHash;
+
     void Awake()
     {
-        //Get references
         networkPlayer = transform.root.GetComponent<NetworkPlayer>();
-        rigidbody3D = GetComponent<Rigidbody>();
+        rigidbody3D   = GetComponent<Rigidbody>();
+        rigidbody3D.solverIterations = 255;
 
-        //Change solver iterations to prevent joint from flexing too much
-        rigidbody3D.solverIterations = 255; 
+        // Decide which animator bool this hand drives
+        string paramName = (side == HandSide.Left) ? "IsLeftGrabbing" : "IsRightGrabbing";
+        grabParamHash = Animator.StringToHash(paramName);
     }
 
     public void UpdateState()
     {
-        //Check if grabbing is active
-        if (networkPlayer.IsGrabbingActive)
+
+        // Evaluate intent each tick
+        bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
+
+        if (handWantsGrab)
         {
-            animator.SetBool("IsGrabbing", true);
+            if (animator) animator.SetBool(grabParamHash, true);
         }
         else
         {
-            //We are no longer carrying, chec if there is a joint to destroy
+            // Releasing: if we were holding something, toss a bit and drop it
             if (fixedJoint != null)
             {
-                //Give the connected rigidbody some velocity
                 if (fixedJoint.connectedBody != null)
                 {
                     float forceAmountMultiplier = 0.1f;
-                    //Get the other player
+
                     if (fixedJoint.connectedBody.transform.root.TryGetComponent(out NetworkPlayer otherNetworkPlayer))
                     {
-                        //If the other player is in ragdoll mode, apply more force
-                        if (otherNetworkPlayer.IsActiveRagdoll)
-                            forceAmountMultiplier = 10f;
-                        else forceAmountMultiplier = 15f;
+                        // If you want more force on ragdolls, put the larger value in the true branch.
+                        forceAmountMultiplier = otherNetworkPlayer.IsActiveRagdoll ? 15f : 10f;
                     }
 
-                    //Toss the object a bit when releasing
-                    fixedJoint.connectedBody.AddForce((networkPlayer.transform.forward + Vector3.up * 0.25f) * forceAmountMultiplier, ForceMode.Impulse);
+                    fixedJoint.connectedBody.AddForce(
+                        (networkPlayer.transform.forward + Vector3.up * 0.25f) * forceAmountMultiplier,
+                        ForceMode.Impulse
+                    );
                 }
                 Destroy(fixedJoint);
-
             }
-            //Change animator state
-            animator.SetBool("IsGrabbing", false);
-            //animator.SetBool("IsClimbing", false);
+
+            if (animator) animator.SetBool(grabParamHash, false);
         }
     }
 
     bool TryCarryObject(Collision collision)
     {
-        //Check if we are allowed to carry objects
-        if (!networkPlayer.Object.HasStateAuthority)
-            return false;
+        if (!networkPlayer.Object.HasStateAuthority) return false;
+        if (!networkPlayer.IsActiveRagdoll)          return false;
 
-        //Check if we are in ragdoll mode
-        if (!networkPlayer.IsActiveRagdoll)
-            return false;
+        bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
+        if (!handWantsGrab) return false;
 
-        //Check that we are trying to grab something
-        if (!networkPlayer.IsGrabbingActive)
-            return false;
+        if (fixedJoint != null) return false;
+        if (collision.transform.root == networkPlayer.transform) return false;
 
-        //Check if we are already carrying something
-        if (fixedJoint != null)
-            return false;
+        if (!collision.collider.TryGetComponent(out Rigidbody otherObjectRigidbody)) return false;
 
-        //Avoid trying to grab yourself
-        if (collision.transform.root == networkPlayer.transform)
-            return false;
-
-        //Check if the object has a rigidbody
-        if (!collision.collider.TryGetComponent(out Rigidbody otherObjectRigidbody))
-            return false;
-
-        //Add a fixed joint
-        fixedJoint = transform.gameObject.AddComponent<FixedJoint>();
-
-        //Connect the joint to the other object
+        // Create the joint anchored at the first contact
+        fixedJoint = gameObject.AddComponent<FixedJoint>();
         fixedJoint.connectedBody = otherObjectRigidbody;
-
-        //Will take care of the anchor point on our own
         fixedJoint.autoConfigureConnectedAnchor = false;
 
-        //Transform the contact point to local space
-        fixedJoint.connectedAnchor = collision.transform.InverseTransformPoint(collision.GetContact(0).point);
+        var contact = collision.GetContact(0).point;
+        fixedJoint.anchor          = transform.InverseTransformPoint(contact);
+        fixedJoint.connectedAnchor = collision.transform.InverseTransformPoint(contact);
 
+        fixedJoint.breakForce  = 500f;
+        fixedJoint.breakTorque = 500f;
 
-        //Set animator to carry
-        animator.SetBool("IsGrabbing", true);
+        if (animator) animator.SetBool(grabParamHash, true);
         return true;
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        //Attempt to carry the other object
+        // Attempt to grab when we collide and intent is active
         TryCarryObject(collision);
     }
 
+    void OnJointBreak(float breakForce)
+    {
+        if (fixedJoint != null) Destroy(fixedJoint);
+        if (animator) animator.SetBool(grabParamHash, false);
+    }
 }

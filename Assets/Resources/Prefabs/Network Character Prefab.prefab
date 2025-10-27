@@ -2259,8 +2259,8 @@ MonoBehaviour:
   _IsRightGrab:
     _value: 0
   maxStamina: 100
-  sprintDrainPerSec: 20
-  regenPerSec: 15
+  sprintDrainPerSec: 10
+  regenPerSec: 20
   regenDelaySeconds: 0.5
   minStartStamina: 10
   hangDrainPerSec: 5

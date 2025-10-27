@@ -27,7 +27,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [Header("Stamina Settings")]
     [SerializeField] float maxStamina = 100f;
     [SerializeField] float sprintDrainPerSec = 10f;   // drain while sprinting
-    [SerializeField] float regenPerSec       = 30f;   // regen when not sprinting
+    [SerializeField] float regenPerSec       = 20f;   // regen when not sprinting
     [SerializeField] float regenDelaySeconds = 0.5f;  // delay after sprint stops before regen
     [SerializeField] float minStartStamina = 10f;   // must have this to (re)start sprint
     [SerializeField] float hangDrainPerSec = 5f;
@@ -37,7 +37,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     
     // Controller settings
     [Header("Movement Settings")]
-    float maxSpeed = 4;
+    float maxSpeed = 5;
     [SerializeField] float sprintMultiplier = 1.6f; // 60% faster
     bool sprintActive = false; // latched sprint state used for movement
     [SerializeField] float sprintGraceSeconds = 0.12f; // how long after releasing sprint can you still sprint

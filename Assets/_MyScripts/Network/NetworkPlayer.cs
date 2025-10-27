@@ -26,10 +26,11 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     //Stamina
     [Header("Stamina Settings")]
     [SerializeField] float maxStamina = 100f;
-    [SerializeField] float sprintDrainPerSec = 20f;   // drain while sprinting
-    [SerializeField] float regenPerSec       = 15f;   // regen when not sprinting
+    [SerializeField] float sprintDrainPerSec = 10f;   // drain while sprinting
+    [SerializeField] float regenPerSec       = 30f;   // regen when not sprinting
     [SerializeField] float regenDelaySeconds = 0.5f;  // delay after sprint stops before regen
     [SerializeField] float minStartStamina = 10f;   // must have this to (re)start sprint
+    [SerializeField] float hangDrainPerSec = 5f;
     [Networked] public float Stamina { get; set; }
     double staminaRegenAllowedAt = 0;
     public float StaminaPercent => maxStamina <= 0f ? 0f : Stamina / maxStamina;
@@ -164,9 +165,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         Vector3 localVelocifyVsForward = Vector3.zero;
         float localForwardVelocity = 0;
 
-            // --------------- StateAuthority only: simulate physics ---------------
-            isGrounded = false;
-            int numberOfHits = Physics.SphereCastNonAlloc(
+        // --------------- StateAuthority only: simulate physics ---------------
+        isGrounded = false;
+        int numberOfHits = Physics.SphereCastNonAlloc(
                 rigidbody3D.position, 0.1f, -transform.up, raycastHits, 0.5f
             );
         for (int i = 0; i < numberOfHits; i++)
@@ -204,6 +205,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 yawDeg += networkInputData.lookDelta.x * mouseXSens;
                 pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
                 pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+                /**if (Object.HasInputAuthority)
+                {
+                    Debug.Log($"[PITCH DEBUG] Time={Time.time:F2} | pitchDeg={pitchDeg:F2} | lookDeltaY={networkInputData.lookDelta.y:F2}");
+                }**/
                 
                 if (mainJoint)
                 {
@@ -249,20 +254,32 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             // Stamina drain / regen
             float dt = (float)Runner.DeltaTime;
 
-            bool shouldDrain = isGrounded
+            bool sprintDrain = isGrounded
                    && sprintActive
                    && networkInputData.isSprinting
                    && networkInputData.movementInput.sqrMagnitude > 0.01f;
 
-            if (shouldDrain)
+            bool isHanging = !isGrounded
+                   && (handGrabHandlers[0].IsLatched
+                   || handGrabHandlers[1].IsLatched);
+
+
+            if (isHanging)
+            {
+                // drain while hanging (not grounded with a latched hand)
+                Stamina = Mathf.Max(0f, Stamina - hangDrainPerSec * dt);
+                staminaRegenAllowedAt = Runner.SimulationTime + regenDelaySeconds;
+                if (Stamina <= 0f)
+                {
+                    foreach (var h in handGrabHandlers) h.ReleaseIfLatched();
+                }
+            }
+
+            else if (sprintDrain)
             {
                 // drain while sprinting
                 Stamina = Mathf.Max(0f, Stamina - sprintDrainPerSec * dt);
-
-                // when we sprint, push back regen start time
                 staminaRegenAllowedAt = Runner.SimulationTime + regenDelaySeconds;
-
-                // if we ran out mid-air or mid-tick, immediately drop sprint
                 if (Stamina <= 0f) sprintActive = false;
             }
             else

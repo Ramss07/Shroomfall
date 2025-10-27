@@ -115,6 +115,8 @@ public class HandGrabHandler : MonoBehaviour
         if (!networkPlayer.IsActiveRagdoll) return false;
         if (networkPlayer.Runner.SimulationTime < nextAllowedGrabTime) return false;
 
+        if (networkPlayer.Stamina <= 0) return false;
+
         bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
         if (!handWantsGrab) return false;
 

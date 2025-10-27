@@ -20,9 +20,35 @@ public class HandGrabHandler : MonoBehaviour
 
     // References
     NetworkPlayer networkPlayer;
-
     public enum HandSide { Left, Right }
     [SerializeField] HandSide side = HandSide.Left;
+
+    public bool IsLatched => fixedJoint != null;
+    public HandSide Side => side;
+    public Rigidbody ConnectedBody => fixedJoint ? fixedJoint.connectedBody : null;
+    public bool IsLatchedToKinematic => fixedJoint && fixedJoint.connectedBody && fixedJoint.connectedBody.isKinematic;
+    double nextAllowedGrabTime = -1;
+    const double regrabDelay = 0.25;
+    public bool ReleaseIfLatched()
+    {
+        if (fixedJoint == null) return false;
+
+        // drop joint
+        Destroy(fixedJoint);
+        fixedJoint = null;
+        nextAllowedGrabTime = networkPlayer.Runner.SimulationTime + regrabDelay;
+
+        // clean up indicator
+        if (grabIndicator)
+        {
+            Destroy(grabIndicator);
+            grabIndicator = null;
+        }
+
+        // animator flag off
+        if (animator) animator.SetBool(grabParamHash, false);
+        return true;
+    }
 
     // Animator param
     int grabParamHash;
@@ -86,7 +112,8 @@ public class HandGrabHandler : MonoBehaviour
     bool TryCarryObject(Collision collision)
     {
         if (!networkPlayer.Object.HasStateAuthority) return false;
-        if (!networkPlayer.IsActiveRagdoll)          return false;
+        if (!networkPlayer.IsActiveRagdoll) return false;
+        if (networkPlayer.Runner.SimulationTime < nextAllowedGrabTime) return false;
 
         bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
         if (!handWantsGrab) return false;
@@ -108,7 +135,7 @@ public class HandGrabHandler : MonoBehaviour
 
         // Set anchors (hand/local and object/local)
         fixedJoint.anchor          = transform.InverseTransformPoint(contact);
-        fixedJoint.connectedAnchor = collision.transform.InverseTransformPoint(contact);
+        fixedJoint.connectedAnchor = otherObjectRigidbody.transform.InverseTransformPoint(contact);
 
         fixedJoint.breakForce  = 500f;
         fixedJoint.breakTorque = 500f;

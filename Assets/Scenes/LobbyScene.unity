@@ -2029,7 +2029,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 328164572205699927, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 2.899994
+      value: 2.9000244
       objectReference: {fileID: 0}
     - target: {fileID: 393308464544896062, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_Color.b
@@ -2061,15 +2061,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3490979202467593199, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3490979202467593199, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchorMin.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3490979202467593199, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 1105
+      value: -364
       objectReference: {fileID: 0}
     - target: {fileID: 5394989090393526079, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_SizeDelta.x
@@ -2093,7 +2093,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5557648617175166740, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 1.3999939
+      value: 1.4000244
       objectReference: {fileID: 0}
     - target: {fileID: 5557648617175166740, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -2193,15 +2193,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6115159254024949798, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6115159254024949798, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchorMin.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6115159254024949798, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 1105
+      value: -364
       objectReference: {fileID: 0}
     - target: {fileID: 7030320196998086401, guid: 09622c368df8e7948ba8d4fa8c0a6a6b, type: 3}
       propertyPath: m_SizeDelta.x

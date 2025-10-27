@@ -84,6 +84,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     public bool IsActiveRagdoll => isActiveRagdoll;
     bool isSprintHeld = false;
 
+    double lastGroundedTime = -1;
+    const double coyoteTimeSeconds = 0.15;
+
 
     // Raycasts
     RaycastHit[] raycastHits = new RaycastHit[10];
@@ -166,11 +169,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             int numberOfHits = Physics.SphereCastNonAlloc(
                 rigidbody3D.position, 0.1f, -transform.up, raycastHits, 0.5f
             );
-            for (int i = 0; i < numberOfHits; i++) {
-                if (raycastHits[i].transform.root == transform) continue;
-                isGrounded = true; break;
-            }
-            if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration);
+        for (int i = 0; i < numberOfHits; i++)
+        {
+            if (raycastHits[i].transform.root == transform) continue;
+            isGrounded = true; break;
+        }
+            if (isGrounded) lastGroundedTime = Runner.SimulationTime; // remember last grounded time
+            if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration); // extra gravity when airborne
 
             localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
             localForwardVelocity = localVelocifyVsForward.magnitude;
@@ -335,18 +340,47 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 }
 
 
-                // -------------------------- Jumping ------------------------
-                if (isGrounded && networkInputData.isJumpPressed)
+               // -------------------------- Jumping ------------------------
+                if (networkInputData.isJumpPressed)
                 {
-                    rigidbody3D.AddForce(Vector3.up * 30f, ForceMode.Impulse);
-                    isJumpButtonPressed = false;
-                }
-                // Dampen to reduce sliding
-                if (networkInputData.movementInput.sqrMagnitude < 0.0001f && isGrounded)
-                {
-                    Vector3 horizVel = rigidbody3D.linearVelocity;
-                    horizVel.y = 0f;
-                    rigidbody3D.AddForce(-horizVel * 3f, ForceMode.Acceleration);
+                    // Treat as grounded for a short grace after touching ground
+                    bool groundedOrGrace = isGrounded || (Runner.SimulationTime - lastGroundedTime) <= coyoteTimeSeconds;
+
+                    // If grounded (or within grace): normal jump, DO NOT detach
+                    if (groundedOrGrace)
+                    {
+                        rigidbody3D.AddForce(Vector3.up * 30f, ForceMode.Impulse);
+                        isJumpButtonPressed = false;
+                        goto JumpHandled;
+                    }
+
+                    // Airborne: only detach+jump if BOTH hands are latched AND BOTH are on kinematic bodies
+                    HandGrabHandler leftLatched  = null;
+                    HandGrabHandler rightLatched = null;
+
+                    foreach (var h in handGrabHandlers)
+                    {
+                        if (!h.IsLatched) continue;
+                        if (h.Side == HandGrabHandler.HandSide.Left)  leftLatched  = h;
+                        if (h.Side == HandGrabHandler.HandSide.Right) rightLatched = h;
+                    }
+
+                    if (leftLatched != null && rightLatched != null)
+                    {
+                        bool bothKinematic = leftLatched.IsLatchedToKinematic && rightLatched.IsLatchedToKinematic;
+
+                        if (bothKinematic)
+                        {
+                            // Detach both airborne wall-jump
+                            leftLatched.ReleaseIfLatched();
+                            rightLatched.ReleaseIfLatched();
+
+                            rigidbody3D.AddForce(Vector3.up * 30f, ForceMode.Impulse); // straight up for now
+                            isJumpButtonPressed = false;
+                            goto JumpHandled;
+                        }
+                    }
+                JumpHandled: ;
                 }
             }
 

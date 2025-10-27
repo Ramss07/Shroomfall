@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 169571104477698682}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.008, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -198,7 +198,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
-  grabIndicatorPrefab: {fileID: 4346238431224586022, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
+  grabIndicatorPrefab: {fileID: 3260284475108055387, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
   side: 1
 --- !u!1 &2240250324045435417
 GameObject:
@@ -229,8 +229,8 @@ Transform:
   m_GameObject: {fileID: 2240250324045435417}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0010027534, y: 0.0000026383577, z: -0.9999996, w: 0.0000003661331}
-  m_LocalPosition: {x: 0.013, y: 0.231, z: -0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.01, y: 0.192, z: 0}
+  m_LocalScale: {x: 1, y: 0.59342, z: 0.59342}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5846972333432310820}
@@ -398,7 +398,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
-  grabIndicatorPrefab: {fileID: 4346238431224586022, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
+  grabIndicatorPrefab: {fileID: 3260284475108055387, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
   side: 0
 --- !u!1 &2965654943715989812
 GameObject:
@@ -2263,6 +2263,7 @@ MonoBehaviour:
   regenPerSec: 15
   regenDelaySeconds: 0.5
   minStartStamina: 10
+  hangDrainPerSec: 5
   _Stamina: 0
   sprintMultiplier: 1.6
   sprintGraceSeconds: 0.12
@@ -13311,7 +13312,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1749975028479301593}
   serializedVersion: 5
-  m_Mass: 0.1
+  m_Mass: 0.0000001
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -14118,7 +14119,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6121096624039355075}
   serializedVersion: 5
-  m_Mass: 0.1
+  m_Mass: 0.0000001
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}

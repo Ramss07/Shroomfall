@@ -1,4 +1,5 @@
 using UnityEngine;
+using Fusion;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
@@ -6,19 +7,15 @@ public class HandGrabHandler : MonoBehaviour
 {
     [SerializeField] Animator animator;
 
-    // Prefab for the persistent grab marker
-    [SerializeField] GameObject grabIndicatorPrefab;
+    // Networked prefab (must have NetworkObject + NetworkTransform)
+    [SerializeField] NetworkObject grabIndicatorPrefab;
 
-    // Fixed joint created when grabbing
     FixedJoint fixedJoint;
-
-    // Our own rigidbody
     Rigidbody rigidbody3D;
 
-    // Spawned indicator instance
-    GameObject grabIndicator;
+    // Spawned networked indicator instance
+    NetworkObject grabIndicatorNO;
 
-    // References
     NetworkPlayer networkPlayer;
     public enum HandSide { Left, Right }
     [SerializeField] HandSide side = HandSide.Left;
@@ -27,30 +24,10 @@ public class HandGrabHandler : MonoBehaviour
     public HandSide Side => side;
     public Rigidbody ConnectedBody => fixedJoint ? fixedJoint.connectedBody : null;
     public bool IsLatchedToKinematic => fixedJoint && fixedJoint.connectedBody && fixedJoint.connectedBody.isKinematic;
+
     double nextAllowedGrabTime = -1;
     const double regrabDelay = 0.25;
-    public bool ReleaseIfLatched()
-    {
-        if (fixedJoint == null) return false;
 
-        // drop joint
-        Destroy(fixedJoint);
-        fixedJoint = null;
-        nextAllowedGrabTime = networkPlayer.Runner.SimulationTime + regrabDelay;
-
-        // clean up indicator
-        if (grabIndicator)
-        {
-            Destroy(grabIndicator);
-            grabIndicator = null;
-        }
-
-        // animator flag off
-        if (animator) animator.SetBool(grabParamHash, false);
-        return true;
-    }
-
-    // Animator param
     int grabParamHash;
 
     void Awake()
@@ -71,10 +48,10 @@ public class HandGrabHandler : MonoBehaviour
         {
             if (animator) animator.SetBool(grabParamHash, true);
 
-            // Keep indicator following the grab point while holding
-            if (fixedJoint != null && grabIndicator != null && fixedJoint.connectedBody != null)
+            // Keep indicator following the grab point while holding (authority moves; NetworkTransform replicates)
+            if (fixedJoint != null && grabIndicatorNO != null && fixedJoint.connectedBody != null)
             {
-                grabIndicator.transform.position =
+                grabIndicatorNO.transform.position =
                     fixedJoint.connectedBody.transform.TransformPoint(fixedJoint.connectedAnchor);
             }
         }
@@ -99,10 +76,10 @@ public class HandGrabHandler : MonoBehaviour
                 fixedJoint = null;
             }
 
-            if (grabIndicator != null)
+            if (grabIndicatorNO != null)
             {
-                Destroy(grabIndicator);
-                grabIndicator = null;
+                networkPlayer.Runner.Despawn(grabIndicatorNO);
+                grabIndicatorNO = null;
             }
 
             if (animator) animator.SetBool(grabParamHash, false);
@@ -114,7 +91,6 @@ public class HandGrabHandler : MonoBehaviour
         if (!networkPlayer.Object.HasStateAuthority) return false;
         if (!networkPlayer.IsActiveRagdoll) return false;
         if (networkPlayer.Runner.SimulationTime < nextAllowedGrabTime) return false;
-
         if (networkPlayer.Stamina <= 0) return false;
 
         bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
@@ -125,68 +101,66 @@ public class HandGrabHandler : MonoBehaviour
 
         if (!collision.collider.TryGetComponent(out Rigidbody otherObjectRigidbody)) return false;
 
-        // Use a safe contact point
         Vector3 contact = (collision.contactCount > 0)
             ? collision.GetContact(0).point
             : collision.collider.ClosestPoint(transform.position);
 
-        // Create joint
         fixedJoint = gameObject.AddComponent<FixedJoint>();
         fixedJoint.connectedBody = otherObjectRigidbody;
         fixedJoint.autoConfigureConnectedAnchor = false;
 
-        // Set anchors (hand/local and object/local)
         fixedJoint.anchor          = transform.InverseTransformPoint(contact);
         fixedJoint.connectedAnchor = otherObjectRigidbody.transform.InverseTransformPoint(contact);
 
         fixedJoint.breakForce  = 500f;
         fixedJoint.breakTorque = 500f;
 
-        // Spawn/position a persistent indicator in world space (no parenting)
         ShowGrabIndicator(contact);
 
         if (animator) animator.SetBool(grabParamHash, true);
         return true;
     }
 
-    void OnCollisionEnter(Collision collision)
+    void OnCollisionEnter(Collision collision) => TryCarryObject(collision);
+
+    void ShowGrabIndicator(Vector3 worldPos)
     {
-        // Attempt to grab when we collide and intent is active
-        TryCarryObject(collision);
+        if (grabIndicatorNO == null)
+        {
+            if (grabIndicatorPrefab == null) return;
+            grabIndicatorNO = networkPlayer.Runner.Spawn(grabIndicatorPrefab, worldPos, Quaternion.identity);
+        }
+        else
+        {
+            grabIndicatorNO.transform.position = worldPos;
+        }
+    }
+
+    public bool ReleaseIfLatched()
+    {
+        if (fixedJoint == null) return false;
+
+        Destroy(fixedJoint);
+        fixedJoint = null;
+        nextAllowedGrabTime = networkPlayer.Runner.SimulationTime + regrabDelay;
+
+        if (grabIndicatorNO)
+        {
+            networkPlayer.Runner.Despawn(grabIndicatorNO);
+            grabIndicatorNO = null;
+        }
+        if (animator) animator.SetBool(grabParamHash, false);
+        return true;
     }
 
     void OnJointBreak(float breakForce)
     {
-        if (fixedJoint != null)
-        {
-            Destroy(fixedJoint);
-            fixedJoint = null;
-        }
-
+        if (fixedJoint) { Destroy(fixedJoint); fixedJoint = null; }
         if (animator) animator.SetBool(grabParamHash, false);
-
-        if (grabIndicator != null)
+        if (grabIndicatorNO)
         {
-            Destroy(grabIndicator);
-            grabIndicator = null;
+            networkPlayer.Runner.Despawn(grabIndicatorNO);
+            grabIndicatorNO = null;
         }
-    }
-
-    // Spawns (or reuses) the prefab indicator at a world position, unparented so scale stays uniform
-    void ShowGrabIndicator(Vector3 worldPos)
-    {
-        if (grabIndicator == null)
-        {
-            if (grabIndicatorPrefab == null) return; // nothing to spawn
-            grabIndicator = Instantiate(grabIndicatorPrefab, worldPos, Quaternion.identity);
-        }
-        else
-        {
-            grabIndicator.transform.position = worldPos;
-        }
-
-        // Ensure no parent so it never inherits scale
-        grabIndicator.transform.SetParent(null, true);
-        grabIndicator.SetActive(true);
     }
 }

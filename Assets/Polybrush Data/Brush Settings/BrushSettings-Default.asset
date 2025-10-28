@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Polybrush.Editor::UnityEditor.Polybrush.BrushSettings
   brushRadiusMin: 0.001
   brushRadiusMax: 5
-  _radius: 1
-  _falloff: 0.5
+  _radius: 0.06
+  _falloff: 0.012
   _strength: 1
   _curve:
     serializedVersion: 2
@@ -25,16 +25,16 @@ MonoBehaviour:
       value: 1
       inSlope: 0
       outSlope: 0
-      tangentMode: 0
+      tangentMode: 34
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 0
-      inSlope: -3
-      outSlope: -3
-      tangentMode: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 34
       weightedMode: 0
       inWeight: 0
       outWeight: 0

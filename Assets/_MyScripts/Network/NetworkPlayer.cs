@@ -260,8 +260,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                    && networkInputData.movementInput.sqrMagnitude > 0.01f;
 
             bool isHanging = !isGrounded
-                   && (handGrabHandlers[0].IsLatched
-                   || handGrabHandlers[1].IsLatched);
+                   && (handGrabHandlers[0].IsLatchedToKinematic
+                   || handGrabHandlers[1].IsLatchedToKinematic);
 
 
             if (isHanging)

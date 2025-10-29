@@ -19,7 +19,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     bool isLeftGrabButtonPressed = false;
     bool isRightGrabButtonPressed = false;
 
-    [Networked] public NetworkBool IsLeftGrab  { get; set; }
+    [Networked] public NetworkBool IsLeftGrab { get; set; }
     [Networked] public NetworkBool IsRightGrab { get; set; }
 
 
@@ -27,14 +27,14 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [Header("Stamina Settings")]
     [SerializeField] float maxStamina = 100f;
     [SerializeField] float sprintDrainPerSec = 10f;   // drain while sprinting
-    [SerializeField] float regenPerSec       = 20f;   // regen when not sprinting
+    [SerializeField] float regenPerSec = 20f;   // regen when not sprinting
     [SerializeField] float regenDelaySeconds = 0.5f;  // delay after sprint stops before regen
     [SerializeField] float minStartStamina = 10f;   // must have this to (re)start sprint
     [SerializeField] float hangDrainPerSec = 5f;
     [Networked] public float Stamina { get; set; }
     double staminaRegenAllowedAt = 0;
     public float StaminaPercent => maxStamina <= 0f ? 0f : Stamina / maxStamina;
-    
+
     // Controller settings
     [Header("Movement Settings")]
     float maxSpeed = 5;
@@ -118,7 +118,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
         if (!mainJoint) mainJoint = GetComponent<ConfigurableJoint>();
     }
-    
+
     void Start()
     {
         if (Object.HasInputAuthority)
@@ -139,7 +139,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             moveInputVector.y = Input.GetAxis("Vertical");
 
             // Mouse (accumulate; Fusion will drain once per tick)
-            if(CanLook)
+            if (CanLook)
             {
                 lookDelta.x -= Input.GetAxisRaw("Mouse X");
                 lookDelta.y += Input.GetAxisRaw("Mouse Y");
@@ -155,7 +155,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             isSprintHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
-            isLeftGrabButtonPressed  = Input.GetMouseButton(0);
+            isLeftGrabButtonPressed = Input.GetMouseButton(0);
             isRightGrabButtonPressed = Input.GetMouseButton(1);
         }
     }
@@ -175,21 +175,24 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             if (raycastHits[i].transform.root == transform) continue;
             isGrounded = true; break;
         }
-            if (isGrounded) lastGroundedTime = Runner.SimulationTime; // remember last grounded time
-            if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration); // extra gravity when airborne
+        if (isGrounded) lastGroundedTime = Runner.SimulationTime; // remember last grounded time
+        if (!isGrounded) rigidbody3D.AddForce(Vector3.down * 10f, ForceMode.Acceleration); // extra gravity when airborne
 
-            localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
-            localForwardVelocity = localVelocifyVsForward.magnitude;
+        localVelocifyVsForward = transform.forward * Vector3.Dot(transform.forward, rigidbody3D.linearVelocity);
+        localForwardVelocity = localVelocifyVsForward.magnitude;
         if (isGrounded)
         {
             sprintAllowedUntil = Runner.SimulationTime + sprintGraceSeconds;
         }
         Vector3 horizNowV = new Vector3(rigidbody3D.linearVelocity.x, 0f, rigidbody3D.linearVelocity.z);
 
-        if (wasGroundedLastTick && !isGrounded) {
+        if (wasGroundedLastTick && !isGrounded)
+        {
             // Took off this tick: remember horizontal speed
             takeoffHorizSpeed = horizNowV.magnitude;
-        } else if (!wasGroundedLastTick && isGrounded) {
+        }
+        else if (!wasGroundedLastTick && isGrounded)
+        {
             // Landed: reset
             takeoffHorizSpeed = 0f;
         }
@@ -209,7 +212,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 {
                     Debug.Log($"[PITCH DEBUG] Time={Time.time:F2} | pitchDeg={pitchDeg:F2} | lookDeltaY={networkInputData.lookDelta.y:F2}");
                 }**/
-                
+
                 if (mainJoint)
                 {
                     Vector3 desiredFwd = Quaternion.Euler(0f, yawDeg, 0f) * Vector3.forward;
@@ -235,7 +238,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             if (isGrounded || Runner.SimulationTime <= sprintAllowedUntil)
             {
-                if(!sprintActive)
+                if (!sprintActive)
                 {
                     sprintActive = wantsSprint && hasStartStamina;
                 }
@@ -291,7 +294,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             // --------------------- Movement ------------------------
             float inputMagnitude = networkInputData.movementInput.magnitude;
-            IsLeftGrab  = networkInputData.isLeftGrabPressed;
+            IsLeftGrab = networkInputData.isLeftGrabPressed;
             IsRightGrab = networkInputData.isRightGrabPressed;
 
             if (!IsDead && isActiveRagdoll)
@@ -310,9 +313,9 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                     moveDir.Normalize();
 
                     // Current horizontal velocity and ground target speed
-                    Vector3 vel3  = rigidbody3D.linearVelocity;
+                    Vector3 vel3 = rigidbody3D.linearVelocity;
                     Vector3 horiz = new Vector3(vel3.x, 0f, vel3.z);
-                    float   speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
+                    float speedNow = maxSpeed * (sprintActive ? sprintMultiplier : 1f);
 
                     if (isGrounded)
                     {
@@ -331,10 +334,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                         float targetBuild = Mathf.Min(speedNow, airMaxSpeed);
 
                         // Never pick a desired slower than what you had at takeoff
-                        float desiredMag  = Mathf.Max(horiz.magnitude, takeoffHorizSpeed, targetBuild);
-                        Vector3 desired   = moveDirSideBias * desiredMag;
+                        float desiredMag = Mathf.Max(horiz.magnitude, takeoffHorizSpeed, targetBuild);
+                        Vector3 desired = moveDirSideBias * desiredMag;
 
-                        
+
                         Vector3 add = desired - horiz;
 
                         // If steering mostly opposite current motion, use softer brake accel
@@ -357,7 +360,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 }
 
 
-               // -------------------------- Jumping ------------------------
+                // -------------------------- Jumping ------------------------
                 if (networkInputData.isJumpPressed)
                 {
                     // Treat as grounded for a short grace after touching ground
@@ -372,13 +375,13 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                     }
 
                     // Airborne: only detach+jump if BOTH hands are latched AND BOTH are on kinematic bodies
-                    HandGrabHandler leftLatched  = null;
+                    HandGrabHandler leftLatched = null;
                     HandGrabHandler rightLatched = null;
 
                     foreach (var h in handGrabHandlers)
                     {
                         if (!h.IsLatched) continue;
-                        if (h.Side == HandGrabHandler.HandSide.Left)  leftLatched  = h;
+                        if (h.Side == HandGrabHandler.HandSide.Left) leftLatched = h;
                         if (h.Side == HandGrabHandler.HandSide.Right) rightLatched = h;
                     }
 
@@ -397,7 +400,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                             goto JumpHandled;
                         }
                     }
-                JumpHandled: ;
+                JumpHandled:;
                 }
             }
 
@@ -417,7 +420,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             Vector3 local = transform.InverseTransformDirection(new Vector3(v.x, 0f, v.z));
 
             float top = Mathf.Max(0.001f, maxSpeed * sprintMultiplier);
-            float fwd   = local.z / top;
+            float fwd = local.z / top;
             float right = local.x / top;
 
             // normalized movement magnitude for transitions
@@ -425,18 +428,18 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
             // deadzone + damping
             const float dead = 0.05f;
-            if (Mathf.Abs(fwd)   < dead) fwd = 0f;
+            if (Mathf.Abs(fwd) < dead) fwd = 0f;
             if (Mathf.Abs(right) < dead) right = 0f;
 
-            animator.SetFloat("Forward",  Mathf.Clamp(fwd,  -1f, 1f),  0.1f, Runner.DeltaTime);
-            animator.SetFloat("Right",    Mathf.Clamp(right,-1f, 1f),  0.1f, Runner.DeltaTime);
-            animator.SetFloat("MoveMag",  moveMag);
+            animator.SetFloat("Forward", Mathf.Clamp(fwd, -1f, 1f), 0.1f, Runner.DeltaTime);
+            animator.SetFloat("Right", Mathf.Clamp(right, -1f, 1f), 0.1f, Runner.DeltaTime);
+            animator.SetFloat("MoveMag", moveMag);
 
             // playback speed scales with horizontal speed
             float horizSpeed = new Vector2(local.x, local.z).magnitude;
             animator.SetFloat("AnimSpeed", horizSpeed * 0.4f);
             float upStart = -2f;   // start raising just above horizon
-            float fullUp  = -10f;  // treat -10° as "fully up" (hits 1.0 early)
+            float fullUp = -10f;  // treat -10° as "fully up" (hits 1.0 early)
             float t = Mathf.InverseLerp(upStart, fullUp, pitchDeg);
 
             // Ease-out curve so it climbs quickly to near 1.
@@ -449,7 +452,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             float raiseVal = Mathf.Lerp(0.35f, 1f, shaped);
 
             // Per-hand gating (only apply when that button is held)
-            animator.SetFloat("LeftRaise01",  IsLeftGrab  ? raiseVal : 0f);
+            animator.SetFloat("LeftRaise01", IsLeftGrab ? raiseVal : 0f);
             animator.SetFloat("RightRaise01", IsRightGrab ? raiseVal : 0f);
 
 
@@ -462,7 +465,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 networkPhysicsSyncedRotations.Set(i, syncPhysicsObjects[i].transform.localRotation);
             }
             // Auto-respawn if we fall out of the world (Temporary solution)
-            if (transform.position.y < -10)
+            if (transform.position.y < -1000)
             {
                 networkRigidbody3D.Teleport(Vector3.zero, Quaternion.identity);
             }
@@ -503,22 +506,20 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         NetworkInputData networkInputData = new NetworkInputData();
 
         networkInputData.movementInput = moveInputVector;
-        networkInputData.lookDelta     = lookDelta;
+        networkInputData.lookDelta = lookDelta;
         networkInputData.aimYawDeg = visualYawDeg;
 
         networkInputData.isSprinting = isSprintHeld;
 
         if (isJumpButtonPressed) networkInputData.isJumpPressed = true;
-        if (isAwakeButtonPressed)  networkInputData.isAwakeButtonPressed = true;
-        if (isLeftGrabButtonPressed)  networkInputData.isLeftGrabPressed  = true;
+        if (isAwakeButtonPressed) networkInputData.isAwakeButtonPressed = true;
+        if (isLeftGrabButtonPressed) networkInputData.isLeftGrabPressed = true;
         if (isRightGrabButtonPressed) networkInputData.isRightGrabPressed = true;
 
         // Reset one-shots each tick
-        isJumpButtonPressed  = false;
+        isJumpButtonPressed = false;
         isAwakeButtonPressed = false;
-        isLeftGrabButtonPressed  = false;
-        isRightGrabButtonPressed = false;
-        lookDelta            = Vector2.zero;
+        lookDelta = Vector2.zero;
 
         return networkInputData;
     }
@@ -578,28 +579,36 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
     public override void Spawned()
     {
+        Debug.Log(
+            $"[NetworkPlayer] Obj={Object.Id}  Mode={Runner.GameMode}  " +
+            $"IsServer={Runner.IsServer}  HasStateAuth={Object.HasStateAuthority}  " +
+            $"HasInputAuth={Object.HasInputAuthority}  Owner={Object.InputAuthority}"
+        );
         if (Object.HasInputAuthority)
         {
             Local = this;
             cinemachineVirtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
             cinemachineBrain = FindObjectOfType<CinemachineBrain>();
-            if (cameraAnchor != null) {
-            cinemachineVirtualCamera.m_Follow = cameraAnchor;
-            cinemachineVirtualCamera.m_LookAt = cameraAnchor;
+            if (cameraAnchor != null)
+            {
+                cinemachineVirtualCamera.m_Follow = cameraAnchor;
+                cinemachineVirtualCamera.m_LookAt = cameraAnchor;
             }
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
 
-    transform.name = $"P_{Object.Id}";
+        transform.name = $"P_{Object.Id}";
 
         // PROXIES ONLY: disable physics
-        if (!Object.HasStateAuthority && !Object.HasInputAuthority) 
+        if (!Object.HasStateAuthority && !Object.HasInputAuthority)
         {
-        // Pure proxy
+            // Pure proxy
             if (mainJoint) Destroy(mainJoint);
             rigidbody3D.isKinematic = true;
-        } else {
+        }
+        else
+        {
             // Host or Local Client: must simulate physics for prediction
             rigidbody3D.isKinematic = false;
             rigidbody3D.interpolation = RigidbodyInterpolation.None; // let Fusion drive timing
@@ -635,9 +644,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
     private void RpcDeathFade(bool fadeIn)
     {
-        // This runs on the owner's client
         if (playerFade == null) return;
         if (fadeIn) playerFade.FadeInBlack();
-        else        playerFade.FadeOutBlack();
+        else playerFade.FadeOutBlack();
     }
 }

@@ -1,260 +1,261 @@
-// Assets/Editor/CombinePrefabMeshes.cs
-// Combines every MeshFilter and SkinnedMeshRenderer under a prefab (or scene object)
-// into a single Mesh (preserving materials as submeshes) and saves a new prefab + mesh asset.
-
-#if UNITY_EDITOR
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEditor.Presets;
 
-public static class CombinePrefabMeshes
+public class MeshWeightTransferAndAssign : EditorWindow
 {
-    [MenuItem("Tools/Combine Meshes/From Selected Prefab (Create New Prefab)")]
-    public static void CombineFromSelectedPrefab()
+    enum Mode { ByIndex, ByNearestVertexLocal }
+
+    // Inputs
+    Mesh sourceSkinnedMesh;   // has boneWeights + bindposes
+    Mesh targetGeometryMesh;  // remodeled geometry (no weights)
+    Mode mode = Mode.ByNearestVertexLocal;
+    int progressEvery = 5000;
+
+    // Optional assignment
+    bool assignToRenderer = false;
+    SkinnedMeshRenderer targetRenderer; // optional: assign the new mesh to this SMR
+
+    [MenuItem("Tools/Skinning/Mesh → Mesh (Create Skinned Asset & Assign)")]
+    static void Open() => GetWindow<MeshWeightTransferAndAssign>("Mesh → Mesh Skinned");
+
+    void OnGUI()
     {
-        var selected = Selection.activeObject;
-        if (selected == null)
+        EditorGUILayout.LabelField("Create a NEW skinned Mesh asset by copying weights/bindposes", EditorStyles.boldLabel);
+        EditorGUILayout.Space();
+
+        sourceSkinnedMesh = (Mesh)EditorGUILayout.ObjectField("Source Mesh (skinned)", sourceSkinnedMesh, typeof(Mesh), false);
+        targetGeometryMesh = (Mesh)EditorGUILayout.ObjectField("Target Mesh (geometry)", targetGeometryMesh, typeof(Mesh), false);
+
+        mode = (Mode)EditorGUILayout.EnumPopup("Transfer Mode", mode);
+        progressEvery = Mathf.Max(200, EditorGUILayout.IntField("Progress Every N Verts", progressEvery));
+
+        EditorGUILayout.Space();
+        assignToRenderer = EditorGUILayout.ToggleLeft("Also assign to a SkinnedMeshRenderer / Prefab", assignToRenderer);
+        using (new EditorGUI.DisabledScope(!assignToRenderer))
         {
-            EditorUtility.DisplayDialog("Combine Meshes", "Select a prefab asset in the Project window.", "OK");
-            return;
+            targetRenderer = (SkinnedMeshRenderer)EditorGUILayout.ObjectField("Target Renderer (optional)", targetRenderer, typeof(SkinnedMeshRenderer), true);
         }
 
-        var path = AssetDatabase.GetAssetPath(selected);
-        if (string.IsNullOrEmpty(path) || PrefabUtility.GetPrefabAssetType(selected) == PrefabAssetType.NotAPrefab)
+        EditorGUILayout.Space();
+        using (new EditorGUI.DisabledScope(!sourceSkinnedMesh || !targetGeometryMesh))
         {
-            EditorUtility.DisplayDialog("Combine Meshes", "The selected asset is not a prefab.", "OK");
-            return;
-        }
-
-        // Load the prefab contents into a temporary editing stage
-        var root = PrefabUtility.LoadPrefabContents(path);
-        try
-        {
-            var result = CombineUnderRoot(root.transform, preserveInactive: false);
-            if (result == null)
+            if (GUILayout.Button("Generate NEW Skinned Mesh Asset"))
             {
-                EditorUtility.DisplayDialog("Combine Meshes", "No valid renderers/meshes found to combine.", "OK");
+                try
+                {
+                    var newAsset = GenerateSkinnedAsset(sourceSkinnedMesh, targetGeometryMesh, mode, progressEvery);
+                    if (newAsset)
+                    {
+                        EditorGUIUtility.PingObject(newAsset);
+                        Debug.Log($"Created skinned mesh: {AssetDatabase.GetAssetPath(newAsset)}");
+
+                        if (assignToRenderer && targetRenderer)
+                        {
+                            AssignToRendererAndSave(targetRenderer, newAsset);
+                        }
+
+                        EditorUtility.DisplayDialog("Done", "New skinned mesh asset created."
+                            + (assignToRenderer && targetRenderer ? "\nAssigned to renderer / prefab." : ""), "OK");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogException(ex);
+                    EditorUtility.DisplayDialog("Error", ex.Message, "OK");
+                }
+                finally { EditorUtility.ClearProgressBar(); }
+            }
+        }
+
+        EditorGUILayout.HelpBox(
+            "By Index → identical vertex order/count.\n" +
+            "By Nearest (local) → works if meshes align in local space.\n\n" +
+            "The tool forces Read/Write Enabled on the new .asset so prefab assignments persist.\n" +
+            "If assigning to a Model Prefab (FBX), a Prefab Variant will be created automatically.",
+            MessageType.Info);
+    }
+
+    // --- Core generation ---
+    static Mesh GenerateSkinnedAsset(Mesh src, Mesh dstGeom, Mode mode, int progressEvery)
+    {
+        if (!src) throw new System.Exception("Source mesh is null.");
+        if (!dstGeom) throw new System.Exception("Target geometry mesh is null.");
+
+        var srcWeights = src.boneWeights;
+        var srcBind = src.bindposes;
+
+        if (srcWeights == null || srcWeights.Length == 0)
+            throw new System.Exception("Source mesh has no boneWeights.");
+        if (srcBind == null || srcBind.Length == 0)
+            throw new System.Exception("Source mesh has no bindposes.");
+
+        var outMesh = Object.Instantiate(dstGeom);
+        outMesh.name = dstGeom.name + "_SkinnedCopy";
+
+        BoneWeight[] outWeights;
+
+        if (mode == Mode.ByIndex)
+        {
+            if (src.vertexCount != outMesh.vertexCount)
+                throw new System.Exception("ByIndex mode requires identical vertex counts.");
+            if (srcWeights.Length != outMesh.vertexCount)
+                throw new System.Exception("Source weights length != target vertex count.");
+            outWeights = (BoneWeight[])srcWeights.Clone();
+        }
+        else // nearest in LOCAL space
+        {
+            var srcV = src.vertices;
+            var dstV = outMesh.vertices;
+
+            if (srcV == null || srcV.Length == 0 || dstV == null || dstV.Length == 0)
+                throw new System.Exception("Missing vertices on source or target.");
+
+            outWeights = new BoneWeight[dstV.Length];
+
+            float lastP = -1f;
+            for (int i = 0; i < dstV.Length; i++)
+            {
+                if (i % Mathf.Max(1, progressEvery) == 0)
+                {
+                    float p = i / (float)dstV.Length;
+                    if (p - lastP > 0.01f)
+                    {
+                        EditorUtility.DisplayProgressBar("Transferring Weights (Nearest, local)",
+                            $"Vertex {i}/{dstV.Length}", p);
+                        lastP = p;
+                    }
+                }
+
+                int nearest = FindNearestLocal(srcV, dstV[i]);
+                outWeights[i] = srcWeights[nearest];
+            }
+
+            static int FindNearestLocal(Vector3[] cloud, Vector3 point)
+            {
+                int best = 0;
+                float bestD = (cloud[0] - point).sqrMagnitude;
+                for (int k = 1; k < cloud.Length; k++)
+                {
+                    float d = (cloud[k] - point).sqrMagnitude;
+                    if (d < bestD) { bestD = d; best = k; }
+                }
+                return best;
+            }
+        }
+
+        outMesh.boneWeights = outWeights;
+        outMesh.bindposes = (Matrix4x4[])srcBind.Clone();
+        outMesh.RecalculateBounds();
+
+        // Save asset
+        var path = EditorUtility.SaveFilePanelInProject(
+            "Save NEW skinned mesh asset",
+            outMesh.name + ".asset",
+            "asset",
+            "Choose where to save the new Mesh asset (.asset).");
+
+        if (!string.IsNullOrEmpty(path))
+        {
+            AssetDatabase.CreateAsset(outMesh, path);
+
+            // Ensure Read/Write Enabled so prefab assignments persist
+            ForceMeshReadable(outMesh);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+        else
+        {
+            Debug.LogWarning("Save canceled; mesh exists only in memory for this session.");
+        }
+
+        return outMesh;
+    }
+
+    // Force Read/Write Enabled on a Mesh asset
+    static void ForceMeshReadable(Mesh mesh)
+    {
+        if (!mesh) return;
+        var so = new SerializedObject(mesh);
+        var prop = so.FindProperty("m_IsReadable");
+        if (prop != null && !prop.boolValue)
+        {
+            prop.boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(mesh);
+            Debug.Log($"Enabled Read/Write on mesh: {mesh.name}");
+        }
+    }
+
+    // --- Assignment & prefab handling ---
+    static void AssignToRendererAndSave(SkinnedMeshRenderer smr, Mesh meshAsset)
+    {
+        if (!smr) throw new System.Exception("Target renderer is null.");
+        if (!meshAsset) throw new System.Exception("Mesh asset is null.");
+        if (!AssetDatabase.Contains(meshAsset))
+            throw new System.Exception("The mesh is not a saved Project asset. Save it first.");
+
+        // Assign
+        smr.sharedMesh = meshAsset;
+        PrefabUtility.RecordPrefabInstancePropertyModifications(smr);
+
+        // Determine prefab context
+        var root = PrefabUtility.GetNearestPrefabInstanceRoot(smr.gameObject);
+        if (!root)
+        {
+            // Not a prefab instance (editing in Prefab Mode or a scene-only object)
+            EditorUtility.SetDirty(smr);
+            AssetDatabase.SaveAssets();
+            return;
+        }
+
+        var prefabAsset = PrefabUtility.GetCorrespondingObjectFromSource(root);
+        var assetType = PrefabUtility.GetPrefabAssetType(prefabAsset);
+        var status = PrefabUtility.GetPrefabInstanceStatus(root);
+
+        if (assetType == PrefabAssetType.Regular && status == PrefabInstanceStatus.Connected)
+        {
+            // Regular prefab → Apply works
+            PrefabUtility.ApplyPrefabInstance(root, InteractionMode.UserAction);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"Assigned mesh and applied to prefab: {prefabAsset.name}");
+        }
+        else if (assetType == PrefabAssetType.Model)
+        {
+            // Model prefab (FBX) → create variant and assign there
+            var suggested = prefabAsset.name + "_Variant";
+            var path = EditorUtility.SaveFilePanelInProject(
+                "Save Prefab Variant",
+                suggested + ".prefab",
+                "prefab",
+                "Model Prefabs cannot be modified. Choose a path to save a Prefab Variant.");
+
+            if (string.IsNullOrEmpty(path))
+            {
+                Debug.LogWarning("Canceled creating Prefab Variant; assignment exists only in this editing session.");
                 return;
             }
 
-            // Create a new root with a single renderer/filter
-            var combinedGo = new GameObject(root.name + "_Combined");
-            combinedGo.transform.position = Vector3.zero;
-            combinedGo.transform.rotation = Quaternion.identity;
-            combinedGo.transform.localScale = Vector3.one;
+            bool success;
+            PrefabUtility.SaveAsPrefabAssetAndConnect(root, path, InteractionMode.UserAction, out success);
+            if (!success) throw new System.Exception("Failed to create Prefab Variant.");
 
-            var mf = combinedGo.AddComponent<MeshFilter>();
-            var mr = combinedGo.AddComponent<MeshRenderer>();
-            mf.sharedMesh = result.Mesh;
-            mr.sharedMaterials = result.Materials;
+            // Open variant, assign, save, close
+            var variantRoot = PrefabUtility.LoadPrefabContents(path);
+            var variantSmr = variantRoot.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            if (!variantSmr) throw new System.Exception("Variant has no SkinnedMeshRenderer.");
+            variantSmr.sharedMesh = meshAsset;
+            PrefabUtility.SaveAsPrefabAsset(variantRoot, path);
+            PrefabUtility.UnloadPrefabContents(variantRoot);
 
-            // Save the mesh asset next to the original prefab
-            var dir = System.IO.Path.GetDirectoryName(path);
-            var meshAssetPath = AssetDatabase.GenerateUniqueAssetPath(System.IO.Path.Combine(dir, root.name + "_Combined.asset"));
-            AssetDatabase.CreateAsset(result.Mesh, meshAssetPath);
             AssetDatabase.SaveAssets();
-
-            // Save as a new prefab next to the original
-            var newPrefabPath = AssetDatabase.GenerateUniqueAssetPath(System.IO.Path.Combine(dir, root.name + "_Combined.prefab"));
-            var newPrefab = PrefabUtility.SaveAsPrefabAsset(combinedGo, newPrefabPath);
-            Object.DestroyImmediate(combinedGo);
-
-            EditorUtility.DisplayDialog("Combine Meshes", $"Created:\n- Mesh: {meshAssetPath}\n- Prefab: {newPrefabPath}", "Nice");
-            EditorGUIUtility.PingObject(newPrefab);
+            Debug.Log($"Created Prefab Variant and assigned mesh: {path}");
         }
-        finally
+        else
         {
-            PrefabUtility.UnloadPrefabContents(root);
+            // Unpacked or not a prefab
+            EditorUtility.SetDirty(smr);
+            AssetDatabase.SaveAssets();
         }
-    }
-
-    [MenuItem("Tools/Combine Meshes/From Selected Scene Object (Create New Prefab)")]
-    public static void CombineFromSelectedSceneObject()
-    {
-        var go = Selection.activeGameObject;
-        if (go == null)
-        {
-            EditorUtility.DisplayDialog("Combine Meshes", "Select a root GameObject in the Hierarchy.", "OK");
-            return;
-        }
-
-        var result = CombineUnderRoot(go.transform, preserveInactive: true);
-        if (result == null)
-        {
-            EditorUtility.DisplayDialog("Combine Meshes", "No valid renderers/meshes found to combine.", "OK");
-            return;
-        }
-
-        // Build output GO
-        var combinedGo = new GameObject(go.name + "_Combined");
-        combinedGo.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-        combinedGo.transform.localScale = Vector3.one;
-
-        var mf = combinedGo.AddComponent<MeshFilter>();
-        var mr = combinedGo.AddComponent<MeshRenderer>();
-        mf.sharedMesh = result.Mesh;
-        mr.sharedMaterials = result.Materials;
-
-        // Ask user where to save
-        var savePath = EditorUtility.SaveFilePanelInProject(
-            "Save Combined Prefab",
-            go.name + "_Combined.prefab",
-            "prefab",
-            "Choose location for the combined prefab");
-
-        if (string.IsNullOrEmpty(savePath))
-        {
-            Object.DestroyImmediate(combinedGo);
-            return;
-        }
-
-        // Save mesh alongside prefab
-        var dir = System.IO.Path.GetDirectoryName(savePath);
-        var meshAssetPath = AssetDatabase.GenerateUniqueAssetPath(System.IO.Path.Combine(dir, go.name + "_Combined.asset"));
-        AssetDatabase.CreateAsset(result.Mesh, meshAssetPath);
-        AssetDatabase.SaveAssets();
-
-        var newPrefab = PrefabUtility.SaveAsPrefabAsset(combinedGo, savePath);
-        Object.DestroyImmediate(combinedGo);
-
-        EditorUtility.DisplayDialog("Combine Meshes", $"Created:\n- Mesh: {meshAssetPath}\n- Prefab: {savePath}", "Nice");
-        EditorGUIUtility.PingObject(newPrefab);
-    }
-
-    /// <summary>
-    /// Combines all MeshFilters and SkinnedMeshRenderers under root into one Mesh with multiple submeshes.
-    /// Materials are preserved as submeshes; transforms are baked relative to root.
-    /// </summary>
-    private static CombineResult CombineUnderRoot(Transform root, bool preserveInactive)
-    {
-        var rootToWorld = root.localToWorldMatrix;
-        var worldToRoot = root.worldToLocalMatrix;
-
-        var renderers = root.GetComponentsInChildren<Renderer>(includeInactive: preserveInactive);
-        if (renderers == null || renderers.Length == 0)
-            return null;
-
-        // Group geometry by material so we can preserve submeshes/materials
-        var materialToCombis = new Dictionary<Material, List<CombineInstance>>();
-
-        // Helper to register a mesh part against a material
-        void AddCombine(Mesh mesh, int subMeshIndex, Material mat, Matrix4x4 toWorld)
-        {
-            if (mesh == null || subMeshIndex < 0 || subMeshIndex >= mesh.subMeshCount) return;
-            if (!materialToCombis.TryGetValue(mat, out var list))
-            {
-                list = new List<CombineInstance>();
-                materialToCombis[mat] = list;
-            }
-
-            var ci = new CombineInstance
-            {
-                mesh = mesh,
-                subMeshIndex = subMeshIndex,
-                transform = worldToRoot * toWorld // bake into root space
-            };
-            list.Add(ci);
-        }
-
-        foreach (var r in renderers)
-        {
-            if (r is ParticleSystemRenderer) continue; // skip particles
-            if (!r.gameObject.activeInHierarchy && !preserveInactive) continue;
-            if (!r.enabled) continue;
-
-            var mats = r.sharedMaterials; // may be longer than mesh submesh count; Unity ignores extras
-
-            if (r is MeshRenderer mr)
-            {
-                var mf = r.GetComponent<MeshFilter>();
-                if (mf == null || mf.sharedMesh == null) continue;
-
-                var mesh = mf.sharedMesh;
-                var toWorld = mf.transform.localToWorldMatrix;
-
-                var subCount = mesh.subMeshCount;
-                for (int i = 0; i < subCount; i++)
-                {
-                    var mat = i < mats.Length ? mats[i] : null;
-                    AddCombine(mesh, i, mat, toWorld);
-                }
-            }
-            else if (r is SkinnedMeshRenderer smr)
-            {
-                if (smr.sharedMesh == null) continue;
-
-                // Bake skinned state to a temporary mesh in world space at editor time.
-                var baked = new Mesh();
-                smr.BakeMesh(baked, true);
-                baked.name = (smr.sharedMesh.name + "_Baked");
-
-                var subCount = baked.subMeshCount;
-                var toWorld = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, smr.transform.lossyScale);
-
-                for (int i = 0; i < subCount; i++)
-                {
-                    var mat = i < smr.sharedMaterials.Length ? smr.sharedMaterials[i] : null;
-                    AddCombine(baked, i, mat, toWorld);
-                }
-            }
-        }
-
-        // Nothing to combine?
-        if (materialToCombis.Count == 0) return null;
-
-        // Step 1: For each material group, combine into one submesh mesh in root space.
-        var subMeshes = new List<Mesh>();
-        var materials = new List<Material>();
-
-        foreach (var kvp in materialToCombis)
-        {
-            var mat = kvp.Key;
-            var list = kvp.Value;
-            if (list.Count == 0) continue;
-
-            var sub = new Mesh();
-            sub.name = (root.name + "_Sub_" + (mat ? mat.name : "NoMat"));
-            // mergeSubMeshes=true inside each material group, useMatrices=true
-            sub.CombineMeshes(list.ToArray(), true, true, false);
-            subMeshes.Add(sub);
-            materials.Add(mat);
-        }
-
-        // Step 2: Combine submeshes (each with a single submesh) into the final mesh with multiple submeshes.
-        var finals = new List<CombineInstance>();
-        foreach (var sm in subMeshes)
-        {
-            finals.Add(new CombineInstance
-            {
-                mesh = sm,
-                subMeshIndex = 0,
-                transform = Matrix4x4.identity
-            });
-        }
-
-        var finalMesh = new Mesh();
-        finalMesh.name = root.name + "_Combined";
-        // mergeSubMeshes = false to preserve each material group as a separate submesh
-        finalMesh.CombineMeshes(finals.ToArray(), false, true, false);
-
-        // Clean up temp sub-meshes (their data is copied into finalMesh)
-        foreach (var sm in subMeshes) Object.DestroyImmediate(sm);
-
-        // Recalculate bounds to be safe (normals/tangents/uvs are preserved by CombineMeshes)
-        finalMesh.RecalculateBounds();
-
-        return new CombineResult
-        {
-            Mesh = finalMesh,
-            Materials = materials.ToArray()
-        };
-    }
-
-    private class CombineResult
-    {
-        public Mesh Mesh;
-        public Material[] Materials;
     }
 }
-#endif

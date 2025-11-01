@@ -9,6 +9,7 @@ public struct NetworkInputData : INetworkInput
     public NetworkBool isAwakeButtonPressed;
     public Vector2 lookDelta;
     public float aimYawDeg;
+    public float aimPitchDeg;
     public NetworkBool isGrabPressed;
     public NetworkBool isSprinting;
     public bool isLeftGrabPressed;

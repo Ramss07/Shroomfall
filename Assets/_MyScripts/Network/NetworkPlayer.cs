@@ -72,6 +72,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     float pitchDeg;
     Quaternion headStartLocalRot;
     float visualYawDeg;
+    float visualPitchDeg;
 
     // Input sampling
     Vector2 moveInputVector = Vector2.zero;
@@ -143,8 +144,12 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             {
                 lookDelta.x -= Input.GetAxisRaw("Mouse X");
                 lookDelta.y += Input.GetAxisRaw("Mouse Y");
+
                 visualYawDeg += Input.GetAxisRaw("Mouse X") * mouseXSens;
                 visualYawDeg = Mathf.DeltaAngle(0f, visualYawDeg);
+
+                visualPitchDeg -= Input.GetAxisRaw("Mouse Y") * mouseYSens;
+                visualPitchDeg  = Mathf.Clamp(visualPitchDeg, minPitch, maxPitch);
             }
 
             if (Input.GetKeyDown(KeyCode.Space))
@@ -206,8 +211,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             if (CanLook)
             {
                 yawDeg += networkInputData.lookDelta.x * mouseXSens;
-                pitchDeg -= networkInputData.lookDelta.y * mouseYSens;
-                pitchDeg = Mathf.Clamp(pitchDeg, minPitch, maxPitch);
+                pitchDeg = Mathf.Clamp(networkInputData.aimPitchDeg, minPitch, maxPitch);
                 /**if (Object.HasInputAuthority)
                 {
                     Debug.Log($"[PITCH DEBUG] Time={Time.time:F2} | pitchDeg={pitchDeg:F2} | lookDeltaY={networkInputData.lookDelta.y:F2}");
@@ -225,10 +229,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 if (headJoint)
                 {
                     headJoint.targetRotation = headStartLocalRot * Quaternion.Euler(-pitchDeg, 0f, 0f);
-                }
-                if (cameraAnchor != null)
-                {
-                    cameraAnchor.localRotation = Quaternion.Euler(pitchDeg, 0f, 0f);
                 }
             }
 
@@ -494,7 +494,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             float simYawDeg = transform.eulerAngles.y;
             float yawOffset = Mathf.DeltaAngle(simYawDeg, visualYawDeg); // how far ahead the camera is
 
-            cameraAnchor.localRotation = Quaternion.Euler(pitchDeg, yawOffset, 0f);
+            cameraAnchor.localRotation = Quaternion.Euler(visualPitchDeg, yawOffset, 0f);
 
             cinemachineBrain.ManualUpdate();
             cinemachineVirtualCamera.UpdateCameraState(Vector3.up, Runner.LocalAlpha);
@@ -508,6 +508,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         networkInputData.movementInput = moveInputVector;
         networkInputData.lookDelta = lookDelta;
         networkInputData.aimYawDeg = visualYawDeg;
+        networkInputData.aimPitchDeg = visualPitchDeg;
 
         networkInputData.isSprinting = isSprintHeld;
 

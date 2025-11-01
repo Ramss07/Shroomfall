@@ -23,7 +23,7 @@ MonoBehaviour:
   - m_enabled: 1
     m_path: Assets/Scenes/MenuScene.unity
   - m_enabled: 1
-    m_path: Assets/Scenes/LobbyScene.unity
+    m_path: Assets/Scenes/Areas/Lobby.unity
   - m_enabled: 1
     m_path: Assets/Scenes/CustomizationOverlay.unity
   m_ScriptingDefines: []

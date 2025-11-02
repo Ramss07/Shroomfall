@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 3
   tags:
   - CauseDamage
+  - Climbable
   layers:
   - Default
   - TransparentFX

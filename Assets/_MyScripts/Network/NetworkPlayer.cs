@@ -487,27 +487,6 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         isGrabbingActive = false;
     }
 
-    [Networked]
-    public PortalController VotedForPortal { get; set; }
-
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_CastVote(PortalController newPortal, RpcInfo info = default)
-    {
-        // check if previous vote and it's different from new one
-        if (VotedForPortal != null && VotedForPortal != newPortal)
-        {
-            // remove their old vote
-            VotedForPortal.RemoveVote(info.Source);
-        }
-
-        // add the new vote to target portal
-        newPortal.AddVote(info.Source);
-
-        // update this player's state to new vote
-        VotedForPortal = newPortal;
-    }
-
     
     public override void Spawned()
     {

@@ -4,7 +4,7 @@ using Fusion;
 public class PlayerInteraction : NetworkBehaviour
 {
     [SerializeField] private float interactionDistance = 4f;
-    [SerializeField] private float interactionRadius = 0.5f;
+    [SerializeField] private float interactionRadius   = 0.5f;
     [SerializeField] private LayerMask portalLayer;
 
     private Camera _mainCamera;
@@ -15,43 +15,67 @@ public class PlayerInteraction : NetworkBehaviour
         _mainCamera = Camera.main;
     }
 
-    void Update()
+    private void Update()
     {
-        // Local player only
-        if (!Object.HasInputAuthority) return;
+        // Only process local input
+        if (!Object || !Object.HasInputAuthority)
+            return;
 
+        // Reacquire camera if needed (scene load, etc.)
         if (_mainCamera == null)
             _mainCamera = Camera.main;
-        if (_mainCamera == null) return;
 
-        Ray ray = _mainCamera.ScreenPointToRay(
-            new Vector3(Screen.width / 2f, Screen.height / 2f));
-
-        PortalController detectedPortal = null;
-        if (Physics.SphereCast(ray, interactionRadius, out RaycastHit hit, interactionDistance, portalLayer))
+        // Ray-sphere style probe for a portal in front of the camera
+        _currentPortal = null;
+        if (_mainCamera)
         {
-            hit.collider.TryGetComponent(out detectedPortal);
-        }
+            var origin = _mainCamera.transform.position;
+            var dir    = _mainCamera.transform.forward;
 
-        if (detectedPortal != null)
-        {
-            if (detectedPortal != _currentPortal)
+            if (Physics.SphereCast(origin, interactionRadius, dir, out RaycastHit hit,
+                                   interactionDistance, portalLayer, QueryTriggerInteraction.Collide))
             {
-                _currentPortal?.HidePrompt();  // local-only visual
-                _currentPortal = detectedPortal;
-                _currentPortal.ShowPrompt();   // local-only visual
+                var detectedPortal = hit.collider.GetComponentInParent<PortalController>();
+                if (detectedPortal != null)
+                {
+                    // Update prompt if portal changed
+                    if (_currentPortal != detectedPortal)
+                    {
+                        _currentPortal?.HidePrompt();
+                        _currentPortal = detectedPortal;
+                        _currentPortal.ShowPrompt();
+                    }
+                }
             }
         }
-        else if (_currentPortal != null)
+
+        // If we lost the portal, clear the prompt
+        if (_currentPortal == null)
         {
-            _currentPortal.HidePrompt();
-            _currentPortal = null;
+            // Nothing to show this frame
         }
 
+        // E to vote
         if (_currentPortal != null && Input.GetKeyDown(KeyCode.E))
         {
-            if (NetworkPlayer.Local != null)
-                NetworkPlayer.Local.RPC_CastVote(_currentPortal);
+            var vm = FindObjectOfType<VotingManager>();
+            if (vm == null || vm.Object == null)
+            {
+                Debug.LogWarning("[PI] VotingManager not ready yet — skipping vote this frame.");
+                return;
+            }
+
+            // Host calls server method directly (no RPC to itself). Clients use RPC.
+            if (vm.Object.HasStateAuthority)
+            {
+                Debug.Log($"[PI] Host vote → direct call for '{_currentPortal.name}'");
+                vm.Server_SetPlayerVote(_currentPortal, Runner.LocalPlayer);
+            }
+            else
+            {
+                Debug.Log($"[PI] Client vote → RPC for '{_currentPortal.name}'");
+                vm.RPC_SetPlayerVote(_currentPortal);
+            }
         }
     }
 }

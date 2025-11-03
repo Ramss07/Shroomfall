@@ -27,7 +27,9 @@ MonoBehaviour:
   - m_enabled: 1
     m_path: Assets/Scenes/CustomizationOverlay.unity
   - m_enabled: 1
-    m_path: Assets/Scenes/Areas/TombOfTheKings.unity
+    m_path: Assets/Scenes/level_2.unity
+  - m_enabled: 1
+    m_path: Assets/Scenes/level_3.unity
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
     m_Settings: []

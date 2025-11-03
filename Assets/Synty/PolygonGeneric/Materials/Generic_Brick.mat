@@ -40,7 +40,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _Albedo_Map:
-        m_Texture: {fileID: 2800000, guid: 0fc78a37989e18d4a87496cdb6c6612c, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Emission_Map:

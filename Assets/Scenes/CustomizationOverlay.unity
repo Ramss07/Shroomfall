@@ -3434,7 +3434,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ApplyCustomizationButton
   customizer: {fileID: 682283856}
-  gameSceneName: LobbyScene
+  gameSceneName: Lobby
 --- !u!1 &1403270867
 GameObject:
   m_ObjectHideFlags: 0

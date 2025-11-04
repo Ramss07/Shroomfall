@@ -19,7 +19,7 @@ public class Spawner : SimulationBehaviour, INetworkRunnerCallbacks
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
     {
-        
+
 
     }
 
@@ -71,10 +71,25 @@ public class Spawner : SimulationBehaviour, INetworkRunnerCallbacks
         {
             var label = GameObject.Find("JoinCodeText")?.GetComponent<TMP_Text>();
             if (label != null)
-            label.text = $"Code: {runner.SessionInfo.Name}";
+                label.text = $"Code: {runner.SessionInfo.Name}";
             Utils.DebugLog("OnPlayerJoined this is the server/host, spawning network player");
 
-            runner.Spawn(networkPlayerPrefab.gameObject, Vector3.zero, Quaternion.identity, player);
+            var spawnPoints = GameObject.FindObjectsByType<SpawnPoint>(FindObjectsSortMode.None);
+            Vector3 spawnPos = Vector3.zero;
+
+            foreach (var spawn in spawnPoints)
+            {
+                if (!spawn.isOccupied)
+                {
+                    spawnPos = spawn.transform.position;
+                    spawn.isOccupied = true;
+                    break;
+                }
+            }
+            if (spawnPoints.Length == 0)
+                Utils.DebugLog("No SpawnPoints found.");
+
+            runner.Spawn(networkPlayerPrefab.gameObject, spawnPos, Quaternion.identity, player);
 
         }
         else Utils.DebugLog("OnPlayerJoined this is the client");
@@ -120,7 +135,7 @@ public class Spawner : SimulationBehaviour, INetworkRunnerCallbacks
     {
 
     }
-    
+
     void Awake()
     {
         var runner = FindObjectOfType<NetworkRunner>();

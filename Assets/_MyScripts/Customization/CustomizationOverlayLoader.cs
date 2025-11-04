@@ -6,17 +6,19 @@ public class CustomizationOverlayLoader : MonoBehaviour
     public const string OverlayScene = "CustomizationOverlay";
 
     [SerializeField] GameObject lobbyUIRoot;
-    [SerializeField] string playerUIName = "PlayerUI";
+    [SerializeField] GameObject playerUIRoot;
     [SerializeField] KeyCode toggleKey = KeyCode.C;
+
+    public bool canCustomize = false;
 
     void Update()
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (Input.GetKeyDown(toggleKey) && canCustomize)
         {
             var overlay = SceneManager.GetSceneByName(OverlayScene);
-            if (!overlay.isLoaded) 
+            if (!overlay.isLoaded)
                 OpenCustomization();
-            else 
+            else
                 CloseCustomization();
         }
     }
@@ -30,8 +32,12 @@ public class CustomizationOverlayLoader : MonoBehaviour
             SceneManager.LoadSceneAsync(OverlayScene, LoadSceneMode.Additive);
         }
 
-        if (lobbyUIRoot) 
+        if (lobbyUIRoot)
             lobbyUIRoot.SetActive(false);
+
+        // Disable input
+        var player = NetworkPlayer.Local;
+        if (player) player.isCustomizing = true;
 
         SetPlayerUIVisible(false);
     }
@@ -46,23 +52,18 @@ public class CustomizationOverlayLoader : MonoBehaviour
             SceneManager.UnloadSceneAsync(s);
         }
 
-        if (lobbyUIRoot) 
+        if (lobbyUIRoot)
             lobbyUIRoot.SetActive(true);
 
+        // Enable input
+        var player = NetworkPlayer.Local;
+        if (player) player.isCustomizing = false;
         SetPlayerUIVisible(true);
     }
 
     void SetPlayerUIVisible(bool visible)
     {
-        var playerUI = GameObject.Find(playerUIName);
-        if (!playerUI) return;
-
-        var cg = playerUI.GetComponent<CanvasGroup>();
-        if (!cg) 
-            cg = playerUI.AddComponent<CanvasGroup>();
-
-        cg.alpha = visible ? 1f : 0f;
-        cg.interactable = visible;
-        cg.blocksRaycasts = visible;
+        if (!playerUIRoot) return;
+        playerUIRoot.SetActive(visible);
     }
 }

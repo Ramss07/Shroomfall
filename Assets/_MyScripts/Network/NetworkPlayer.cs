@@ -85,6 +85,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     bool isActiveRagdoll = true;
     public bool IsActiveRagdoll => isActiveRagdoll;
     bool isSprintHeld = false;
+    public bool isCustomizing;
 
     double lastGroundedTime = -1;
     const double coyoteTimeSeconds = 0.15;
@@ -134,7 +135,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     void Update()
     {
         // -------------------- InputAuthority only: sample raw inputs -------------------
-        if (Object.HasInputAuthority)
+        if (Object.HasInputAuthority && !isCustomizing)
         {
             moveInputVector.x = Input.GetAxis("Horizontal");
             moveInputVector.y = Input.GetAxis("Vertical");
@@ -149,7 +150,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
                 visualYawDeg = Mathf.DeltaAngle(0f, visualYawDeg);
 
                 visualPitchDeg -= Input.GetAxisRaw("Mouse Y") * mouseYSens;
-                visualPitchDeg  = Mathf.Clamp(visualPitchDeg, minPitch, maxPitch);
+                visualPitchDeg = Mathf.Clamp(visualPitchDeg, minPitch, maxPitch);
             }
 
             if (Input.GetKeyDown(KeyCode.Space))
@@ -597,6 +598,11 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             }
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+
+            // Open customization on spawn
+            var overlay = FindFirstObjectByType<CustomizationOverlayLoader>();
+            if (overlay != null)
+                overlay.OpenCustomization();
         }
 
         transform.name = $"P_{Object.Id}";

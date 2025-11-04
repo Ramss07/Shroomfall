@@ -45,7 +45,7 @@ Material:
     - _Distance: 55.38
     - _Enable_UV_Based: 0
     - _EnvironmentReflections: 1
-    - _Falloff: 2
+    - _Falloff: 0.001
     - _Offset: -52.2
     - _QueueControl: 0
     - _QueueOffset: 0

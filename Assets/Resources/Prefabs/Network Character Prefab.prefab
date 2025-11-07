@@ -2280,6 +2280,7 @@ MonoBehaviour:
   minPitch: -60
   maxPitch: 70
   headJoint: {fileID: 5109727096454986969}
+  isCustomizing: 0
   _networkPhysicsSyncedRotations: []
 --- !u!114 &3772735532150111598
 MonoBehaviour:

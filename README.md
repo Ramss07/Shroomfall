@@ -11,7 +11,7 @@ Each level contains **three crystals** hidden throughout the environment.
 Collect all three to activate the portal and move to the next area.  
 The game encourages teamwork—though how much cooperation you actually get from your friends is never guaranteed.
 
-## Gameplay
+### Gameplay
 Movement is fully physics-driven. You control each hand independently:  
 
 - **Left Mouse Button** – left hand  
@@ -22,7 +22,7 @@ Movement is fully physics-driven. You control each hand independently:
 
 Early levels teach basic movement and climbing techniques before introducing more complex platforming, teamwork-based puzzles, and trickier crystal locations.
 
-## Features
+### Features
 - Multiplayer physics-based movement  
 - Active ragdoll character controller  
 - Two-hand grabbing and climbing system  

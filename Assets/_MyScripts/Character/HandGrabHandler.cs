@@ -1,5 +1,6 @@
 using UnityEngine;
 using Fusion;
+using System.Collections.Generic;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
@@ -9,17 +10,24 @@ public class HandGrabHandler : MonoBehaviour
 
     // Networked prefab (must have NetworkObject + NetworkTransform)
     [SerializeField] NetworkObject grabIndicatorPrefab;
+    [SerializeField] float grabbedMassScale = 0.1f;
+    [SerializeField] float liftableMaxMass = 5f;
+    [SerializeField] float minGrabbedMass = 0.1f;
+
+    Rigidbody grabbedBody;
+    float grabbedBodyOriginalMass;
+    bool hasMassOverride = false;
+    
+    static Dictionary<Rigidbody, (float originalMass, int grabCount)> massData = new Dictionary<Rigidbody, (float originalMass, int grabCount)>();
 
     FixedJoint fixedJoint;
     Rigidbody rigidbody3D;
 
     // Spawned networked indicator instance
     NetworkObject grabIndicatorNO;
-
     NetworkPlayer networkPlayer;
     public enum HandSide { Left, Right }
     [SerializeField] HandSide side = HandSide.Left;
-
     public bool IsLatched => fixedJoint != null;
     public HandSide Side => side;
     public Rigidbody ConnectedBody => fixedJoint ? fixedJoint.connectedBody : null;
@@ -62,14 +70,12 @@ public class HandGrabHandler : MonoBehaviour
             {
                 if (fixedJoint.connectedBody != null)
                 {
-                    float forceAmountMultiplier = 10f;
+                    float forceAmountMultiplier = 5f;
                     if (fixedJoint.connectedBody.transform.root.TryGetComponent(out NetworkPlayer otherNetworkPlayer))
                         forceAmountMultiplier = otherNetworkPlayer.IsActiveRagdoll ? 15f : 10f;
-
-                    fixedJoint.connectedBody.AddForce(
-                        (networkPlayer.transform.forward + Vector3.up * 0.25f) * forceAmountMultiplier,
-                        ForceMode.Impulse
-                    );
+                        
+                    if (hasMassOverride && grabbedBody == fixedJoint.connectedBody)
+                        RestoreGrabbedBodyMass();
                 }
 
                 Destroy(fixedJoint);
@@ -115,6 +121,40 @@ public class HandGrabHandler : MonoBehaviour
         fixedJoint.breakForce  = 500f;
         fixedJoint.breakTorque = 500f;
 
+        grabbedBody = otherObjectRigidbody;
+
+        if (!grabbedBody.isKinematic)
+        {
+            if (grabbedBody.mass <= liftableMaxMass)
+            {
+                if (!massData.TryGetValue(grabbedBody, out var data))
+                {
+                    data.originalMass = grabbedBody.mass;
+                    data.grabCount    = 0;
+                }
+
+                data.grabCount++;
+
+                if (data.grabCount == 1)
+                {
+                    float targetMass = data.originalMass * grabbedMassScale;
+                    grabbedBody.mass = Mathf.Max(targetMass, minGrabbedMass);
+                }
+
+                massData[grabbedBody] = data;
+                hasMassOverride       = true;
+            }
+            else
+            {
+                hasMassOverride = false;
+            }
+        }
+        else
+        {
+            grabbedBody     = null;
+            hasMassOverride = false;
+        }
+
         ShowGrabIndicator(contact);
 
         if (animator) animator.SetBool(grabParamHash, true);
@@ -155,12 +195,42 @@ public class HandGrabHandler : MonoBehaviour
 
     void OnJointBreak(float breakForce)
     {
-        if (fixedJoint) { Destroy(fixedJoint); fixedJoint = null; }
+        if (fixedJoint)
+        {
+            Destroy(fixedJoint);
+            fixedJoint = null;
+        }
+        if (hasMassOverride)
+            RestoreGrabbedBodyMass();
+
         if (animator) animator.SetBool(grabParamHash, false);
         if (grabIndicatorNO)
         {
             networkPlayer.Runner.Despawn(grabIndicatorNO);
             grabIndicatorNO = null;
         }
+    }
+
+    void RestoreGrabbedBodyMass()
+    {
+        if (!hasMassOverride || grabbedBody == null)
+            return;
+
+        if (massData.TryGetValue(grabbedBody, out var data))
+        {
+            data.grabCount--;
+
+            if (data.grabCount <= 0)
+            {
+                grabbedBody.mass = data.originalMass;
+                massData.Remove(grabbedBody);
+            }
+            else
+            {
+                massData[grabbedBody] = data;
+            }
+        }
+        hasMassOverride = false;
+        grabbedBody     = null;
     }
 }

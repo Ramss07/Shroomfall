@@ -449,7 +449,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             float y = Mathf.InverseLerp(maxPitch, minPitch, pitchDeg);
 
             // Optional shaping so it rises quicker but still continuous (use 1f for linear)
-            float shaped = Mathf.Pow(y, 0.7f); // 0.5–0.8 feels good
+            float shaped = Mathf.Pow(y, .7f); // 0.5–0.8 feels good
 
             // Final raise value: 0.1 at full down, up to 1.0 at full up
             float raiseVal = Mathf.Lerp(0.1f, 1f, shaped);

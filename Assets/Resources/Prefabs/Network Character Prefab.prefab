@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 5021182707781422250}
   - component: {fileID: 2399841200020118410}
-  - component: {fileID: 4728279942745548180}
   - component: {fileID: 742976736095124082}
   - component: {fileID: 7994683221111855637}
+  - component: {fileID: 420452603282525450}
   m_Layer: 0
   m_Name: GrabPoint
   m_TagString: Untagged
@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 169571104477698682}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.008, z: 0}
+  m_LocalPosition: {x: -0, y: 0.49, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -62,27 +62,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!135 &4728279942745548180
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 169571104477698682}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.42533246
-  m_Center: {x: -0.000000026218201, y: 0.11077871, z: 0.014514486}
 --- !u!153 &742976736095124082
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -199,7 +178,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
   grabIndicatorPrefab: {fileID: 3260284475108055387, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
+  grabbedMassScale: 0.1
+  liftableMaxMass: 5
+  minGrabbedMass: 0.1
   side: 1
+--- !u!136 &420452603282525450
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 169571104477698682}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.30164266
+  m_Height: 0.92276436
+  m_Direction: 1
+  m_Center: {x: 0.000000033891894, y: -0.010227813, z: -0.02709861}
 --- !u!1 &2240250324045435417
 GameObject:
   m_ObjectHideFlags: 0
@@ -210,9 +215,9 @@ GameObject:
   m_Component:
   - component: {fileID: 6398584009638140374}
   - component: {fileID: 5150406527354898398}
-  - component: {fileID: 7859833839223696934}
   - component: {fileID: 4913337854646368403}
   - component: {fileID: 6251920546290335160}
+  - component: {fileID: 766765846232098306}
   m_Layer: 0
   m_Name: GrabPoint
   m_TagString: Untagged
@@ -229,7 +234,7 @@ Transform:
   m_GameObject: {fileID: 2240250324045435417}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0010027534, y: 0.0000026383577, z: -0.9999996, w: 0.0000003661331}
-  m_LocalPosition: {x: 0.01, y: 0.192, z: 0}
+  m_LocalPosition: {x: 0.01, y: 0.416, z: -0}
   m_LocalScale: {x: 1, y: 0.59342, z: 0.59342}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -262,27 +267,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!135 &7859833839223696934
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2240250324045435417}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.42533246
-  m_Center: {x: -0.000000026218201, y: 0.11077871, z: 0.014514486}
 --- !u!153 &4913337854646368403
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -399,7 +383,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HandGrabHandler
   animator: {fileID: 5133829718331845763}
   grabIndicatorPrefab: {fileID: 3260284475108055387, guid: 2622bfcc7ca67d748936bf7a3d81e75d, type: 3}
+  grabbedMassScale: 0.1
+  liftableMaxMass: 5
+  minGrabbedMass: 0.1
   side: 0
+--- !u!136 &766765846232098306
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2240250324045435417}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.30164263
+  m_Height: 1.2937304
+  m_Direction: 1
+  m_Center: {x: 0.000000018495806, y: -0.19570999, z: -0.027098611}
 --- !u!1 &2965654943715989812
 GameObject:
   m_ObjectHideFlags: 0
@@ -9090,7 +9100,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8884984920518210719, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: -8884984920518210719, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_LocalPosition.z
@@ -9236,6 +9246,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
       objectReference: {fileID: 2100000, guid: a7244d273ab987e41a2e8b552101c958, type: 2}
+    - target: {fileID: 2412161367050800168, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 2635460834990549039, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_Mesh
       value: 
@@ -9250,7 +9264,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: b7af0391702dfb945a1c3750c970d1a7, type: 2}
     - target: {fileID: 2838391200542782613, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 4105610393669611064, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -9291,6 +9305,18 @@ PrefabInstance:
     - target: {fileID: 6571383489752443165, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6734931530170869177, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6734931530170869177, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6734931530170869177, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7362990936433955173, guid: 24f20b2dd430a8145953cf9f123e2c1d, type: 3}
       propertyPath: m_IsActive
@@ -10011,7 +10037,7 @@ ConfigurableJoint:
     useAcceleration: 0
   m_SlerpDrive:
     serializedVersion: 4
-    positionSpring: 80
+    positionSpring: 100
     positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0
@@ -12073,7 +12099,7 @@ ConfigurableJoint:
     useAcceleration: 0
   m_SlerpDrive:
     serializedVersion: 4
-    positionSpring: 80
+    positionSpring: 100
     positionDamper: 1
     maximumForce: 3.4028233e+38
     useAcceleration: 0

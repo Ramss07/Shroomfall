@@ -32,7 +32,7 @@ public class SimpleProximityVoice : NetworkBehaviour
     [SerializeField] KeyCode talkKey = KeyCode.V;
     
     [Tooltip("If true, voice is always transmitted (no push-to-talk)")]
-    [SerializeField] bool alwaysOn = true;
+    [SerializeField] bool alwaysOn = false;
     
     [Tooltip("Minimum volume to start transmitting (noise gate)")]
     [SerializeField, Range(0f, 0.1f)] float noiseGate = 0.01f;
@@ -55,6 +55,7 @@ public class SimpleProximityVoice : NetworkBehaviour
     private AudioClip playbackClip;
     private System.Collections.Generic.Queue<float[]> audioQueue = new System.Collections.Generic.Queue<float[]>();
     private bool isPlaying = false;
+    private float[] playbackBuffer = new float[SAMPLE_RATE]; // Reusable buffer
 
     void Awake()
     {
@@ -80,6 +81,9 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (speakingIndicator)
             speakingIndicator.SetActive(false);
         
+        // Create reusable playback clip
+        playbackClip = AudioClip.Create("VoicePlayback", SAMPLE_RATE, 1, SAMPLE_RATE, false);
+        
         // Only local player records audio
         if (Object.HasInputAuthority)
         {
@@ -90,6 +94,21 @@ public class SimpleProximityVoice : NetworkBehaviour
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         StopMicrophone();
+        
+        // Clean up audio resources
+        if (playbackClip != null)
+        {
+            Destroy(playbackClip);
+            playbackClip = null;
+        }
+        
+        if (micClip != null)
+        {
+            Destroy(micClip);
+            micClip = null;
+        }
+        
+        audioQueue.Clear();
     }
 
     void StartMicrophone()
@@ -118,6 +137,13 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (!string.IsNullOrEmpty(micDevice))
         {
             Microphone.End(micDevice);
+            micDevice = null;
+        }
+        
+        if (micClip != null)
+        {
+            Destroy(micClip);
+            micClip = null;
         }
     }
 
@@ -287,13 +313,22 @@ public class SimpleProximityVoice : NetworkBehaviour
 
     void PlayVoice(float[] samples, float distance)
     {
-        // Create or recreate clip if size changed
-        if (playbackClip == null || playbackClip.samples != samples.Length)
-        {
-            playbackClip = AudioClip.Create("Voice", samples.Length, 1, SAMPLE_RATE, false);
-        }
+        if (playbackClip == null) return;
         
-        playbackClip.SetData(samples, 0);
+        // Pad or trim samples to fit the clip size
+        int clipSamples = playbackClip.samples;
+        if (samples.Length != clipSamples)
+        {
+            // Use buffer to pad/trim
+            System.Array.Clear(playbackBuffer, 0, playbackBuffer.Length);
+            int copyLength = Mathf.Min(samples.Length, clipSamples);
+            System.Array.Copy(samples, 0, playbackBuffer, 0, copyLength);
+            playbackClip.SetData(playbackBuffer, 0);
+        }
+        else
+        {
+            playbackClip.SetData(samples, 0);
+        }
         
         // Calculate volume based on distance
         float volume = 1f - Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));

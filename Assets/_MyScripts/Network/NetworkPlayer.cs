@@ -23,6 +23,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     [Networked] public NetworkBool IsRightGrab { get; set; }
 
 
+
     //Stamina
     [Header("Stamina Settings")]
     [SerializeField] float maxStamina = 100f;
@@ -73,6 +74,7 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
     Quaternion headStartLocalRot;
     float visualYawDeg;
     float visualPitchDeg;
+
 
     // Input sampling
     Vector2 moveInputVector = Vector2.zero;
@@ -447,10 +449,10 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             float y = Mathf.InverseLerp(maxPitch, minPitch, pitchDeg);
 
             // Optional shaping so it rises quicker but still continuous (use 1f for linear)
-            float shaped = Mathf.Pow(y, 0.7f); // 0.5–0.8 feels good
+            float shaped = Mathf.Pow(y, .7f); // 0.5–0.8 feels good
 
-            // Final raise value: 0.35 at full down, up to 1.0 at full up
-            float raiseVal = Mathf.Lerp(0.35f, 1f, shaped);
+            // Final raise value: 0.1 at full down, up to 1.0 at full up
+            float raiseVal = Mathf.Lerp(0.1f, 1f, shaped);
 
             // Per-hand gating (only apply when that button is held)
             animator.SetFloat("LeftRaise01", IsLeftGrab ? raiseVal : 0f);

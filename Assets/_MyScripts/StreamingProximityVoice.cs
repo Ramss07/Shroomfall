@@ -1,47 +1,28 @@
 using UnityEngine;
 using Fusion;
+using System.Collections.Generic;
 
 /// <summary>
-/// Simple proximity voice chat for multiplayer games.
-/// 
-/// SETUP:
-/// 1. Add this component to your NetworkPlayer prefab
-/// 2. Assign an AudioSource (will be created automatically if missing)
-/// 3. Configure hearing distances and push-to-talk key
-/// 4. Done!
-/// 
-/// REQUIREMENTS:
-/// - Microphone permission must be granted
-/// - Audio Listener on local player camera
+/// Memory-leak-free proximity voice chat using audio streaming.
+/// This version uses OnAudioFilterRead to avoid creating/destroying AudioClips.
 /// </summary>
-public class SimpleProximityVoice : NetworkBehaviour
+public class StreamingProximityVoice : NetworkBehaviour
 {
     [Header("Audio Setup")]
-    [Tooltip("Audio source for playing received voice (created automatically if null)")]
     [SerializeField] AudioSource audioSource;
     
     [Header("Proximity Settings")]
-    [Tooltip("Maximum distance to hear other players")]
     [SerializeField] float maxDistance = 20f;
-    
-    [Tooltip("Distance at which volume starts to fall off")]
     [SerializeField] float minDistance = 1f;
     
     [Header("Input Settings")]
-    [Tooltip("Key to hold for push-to-talk (V by default)")]
     [SerializeField] KeyCode talkKey = KeyCode.V;
-    
-    [Tooltip("If true, voice is always transmitted (no push-to-talk)")]
     [SerializeField] bool alwaysOn = true;
-    
-    [Tooltip("Minimum volume to start transmitting (noise gate)")]
     [SerializeField, Range(0f, 0.1f)] float noiseGate = 0.01f;
     
-    [Header("Visual Feedback (Optional)")]
-    [Tooltip("GameObject to show when player is speaking")]
+    [Header("Visual Feedback")]
     [SerializeField] GameObject speakingIndicator;
     
-    // Network state
     [Networked] public NetworkBool IsSpeaking { get; set; }
     
     // Microphone
@@ -49,10 +30,12 @@ public class SimpleProximityVoice : NetworkBehaviour
     private string micDevice;
     private int lastSample = 0;
     private const int SAMPLE_RATE = 16000;
-    private const int CHUNK_SIZE = 800;  // Larger chunks = smoother audio (50ms)
+    private const int CHUNK_SIZE = 1024;
     
-    // Playback - simpler approach
-    private System.Collections.Generic.Queue<float[]> audioQueue = new System.Collections.Generic.Queue<float[]>();
+    // Streaming playback buffer
+    private Queue<float> audioStreamQueue = new Queue<float>();
+    private readonly object queueLock = new object();
+    private float lastVolume = 0f;
 
     void Awake()
     {
@@ -64,13 +47,13 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (!audioSource)
             audioSource = gameObject.AddComponent<AudioSource>();
         
-        // Configure for 3D voice
         audioSource.spatialBlend = 1f;
         audioSource.minDistance = minDistance;
         audioSource.maxDistance = maxDistance;
         audioSource.rolloffMode = AudioRolloffMode.Linear;
         audioSource.dopplerLevel = 0f;
-        audioSource.loop = false;
+        audioSource.loop = true;
+        audioSource.Play(); // Start playing silence
     }
 
     public override void Spawned()
@@ -78,7 +61,6 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (speakingIndicator)
             speakingIndicator.SetActive(false);
         
-        // Only local player records audio
         if (Object.HasInputAuthority)
         {
             StartMicrophone();
@@ -88,7 +70,10 @@ public class SimpleProximityVoice : NetworkBehaviour
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         StopMicrophone();
-        audioQueue.Clear();
+        lock (queueLock)
+        {
+            audioStreamQueue.Clear();
+        }
     }
 
     void StartMicrophone()
@@ -102,12 +87,9 @@ public class SimpleProximityVoice : NetworkBehaviour
         micDevice = Microphone.devices[0];
         micClip = Microphone.Start(micDevice, true, 1, SAMPLE_RATE);
         
-        // Wait for mic to initialize
         int timeout = 0;
         while (Microphone.GetPosition(micDevice) <= 0 && timeout < 100)
-        {
             timeout++;
-        }
         
         Debug.Log($"[Voice] Using microphone: {micDevice}");
     }
@@ -129,13 +111,13 @@ public class SimpleProximityVoice : NetworkBehaviour
         }
         
         UpdateIndicator();
+        UpdateVolume();
     }
 
     void HandleLocalVoice()
     {
         if (micClip == null) return;
         
-        // Check if should transmit
         bool wantsToTalk = alwaysOn || Input.GetKey(talkKey);
         
         if (wantsToTalk)
@@ -143,7 +125,6 @@ public class SimpleProximityVoice : NetworkBehaviour
             int currentPos = Microphone.GetPosition(micDevice);
             if (currentPos < 0) return;
             
-            // Calculate samples to read
             int samplesToRead = currentPos - lastSample;
             if (samplesToRead < 0)
                 samplesToRead += micClip.samples;
@@ -153,7 +134,6 @@ public class SimpleProximityVoice : NetworkBehaviour
                 float[] samples = new float[CHUNK_SIZE];
                 micClip.GetData(samples, lastSample);
                 
-                // Check volume (noise gate)
                 float volume = CalculateVolume(samples);
                 
                 if (volume > noiseGate)
@@ -179,15 +159,12 @@ public class SimpleProximityVoice : NetworkBehaviour
     {
         float sum = 0f;
         for (int i = 0; i < samples.Length; i++)
-        {
             sum += Mathf.Abs(samples[i]);
-        }
         return sum / samples.Length;
     }
 
     void TransmitAudio(float[] samples)
     {
-        // Compress to bytes (simple int16 encoding)
         byte[] compressed = new byte[samples.Length * 2];
         
         for (int i = 0; i < samples.Length; i++)
@@ -197,8 +174,8 @@ public class SimpleProximityVoice : NetworkBehaviour
             compressed[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
         }
         
-        // Split into chunks that fit in RPC limit (450 bytes per RPC to be safe)
-        const int maxBytesPerRpc = 450;
+        // Split into safe RPC sizes
+        const int maxBytesPerRpc = 400;
         int numRpcs = (compressed.Length + maxBytesPerRpc - 1) / maxBytesPerRpc;
         
         for (int i = 0; i < numRpcs; i++)
@@ -216,11 +193,9 @@ public class SimpleProximityVoice : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
     void RPC_ReceiveVoice(byte[] data, RpcInfo info = default)
     {
-        // Don't play own voice
         if (info.Source == Runner.LocalPlayer)
             return;
         
-        // Check distance
         if (NetworkPlayer.Local == null)
             return;
         
@@ -228,70 +203,58 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (distance > maxDistance)
             return;
         
-        // Decompress
-        float[] samples = new float[data.Length / 2];
-        for (int i = 0; i < samples.Length; i++)
+        // Decompress and add to stream
+        lock (queueLock)
         {
-            short sample = (short)(data[i * 2] | (data[i * 2 + 1] << 8));
-            samples[i] = sample / 32767f;
-        }
-        
-        // Queue the audio chunk
-        audioQueue.Enqueue(samples);
-    }
-    
-    void LateUpdate()
-    {
-        // Process audio queue for remote players
-        if (!Object.HasInputAuthority && audioQueue.Count > 0)
-        {
-            ProcessAudioQueue();
-        }
-    }
-    
-    void ProcessAudioQueue()
-    {
-        // Play all queued chunks
-        while (audioQueue.Count > 0)
-        {
-            float[] samples = audioQueue.Dequeue();
-            
-            // Calculate distance for volume
-            if (NetworkPlayer.Local != null)
+            for (int i = 0; i < data.Length / 2; i++)
             {
-                float distance = Vector3.Distance(transform.position, NetworkPlayer.Local.transform.position);
-                PlayVoice(samples, distance);
+                short sample = (short)(data[i * 2] | (data[i * 2 + 1] << 8));
+                float floatSample = sample / 32767f;
+                audioStreamQueue.Enqueue(floatSample);
             }
         }
+        
+        // Update target volume
+        float normalizedDistance = Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
+        lastVolume = 1f - normalizedDistance;
     }
 
-    void PlayVoice(float[] samples, float distance)
+    void UpdateVolume()
     {
-        // Create a temporary clip for this chunk
-        AudioClip clip = AudioClip.Create("VoiceChunk", samples.Length, 1, SAMPLE_RATE, false);
-        clip.SetData(samples, 0);
+        // Smoothly transition volume
+        audioSource.volume = Mathf.Lerp(audioSource.volume, lastVolume, Time.deltaTime * 10f);
+    }
+
+    // This is called by Unity's audio system - streams audio directly
+    void OnAudioFilterRead(float[] data, int channels)
+    {
+        // Only process for remote players
+        if (Object == null || Object.HasInputAuthority)
+            return;
         
-        // Calculate volume based on distance
-        float volume = 1f - Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
-        
-        audioSource.volume = volume;
-        audioSource.PlayOneShot(clip);
-        
-        // Destroy after playing to prevent leak
-        Destroy(clip, clip.length + 0.1f);
+        lock (queueLock)
+        {
+            for (int i = 0; i < data.Length; i += channels)
+            {
+                float sample = audioStreamQueue.Count > 0 ? audioStreamQueue.Dequeue() : 0f;
+                
+                // Write to all channels (mono to stereo)
+                for (int c = 0; c < channels; c++)
+                {
+                    data[i + c] = sample;
+                }
+            }
+        }
     }
 
     void UpdateIndicator()
     {
         if (speakingIndicator)
-        {
             speakingIndicator.SetActive(IsSpeaking);
-        }
     }
 
     void OnDrawGizmosSelected()
     {
-        // Show hearing ranges
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, minDistance);
         

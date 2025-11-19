@@ -30,12 +30,14 @@ public class StreamingProximityVoice : NetworkBehaviour
     private string micDevice;
     private int lastSample = 0;
     private const int SAMPLE_RATE = 16000;
-    private const int CHUNK_SIZE = 1024;
+    private const int CHUNK_SIZE = 960;  // 60ms chunks = smoother audio, fits in 2 RPCs
     
     // Streaming playback buffer
     private Queue<float> audioStreamQueue = new Queue<float>();
     private readonly object queueLock = new object();
     private float lastVolume = 0f;
+    private bool hasStartedPlayback = false;
+    private const int MIN_BUFFER_SAMPLES = 4800; // 300ms buffer before starting playback
 
     void Awake()
     {
@@ -53,7 +55,11 @@ public class StreamingProximityVoice : NetworkBehaviour
         audioSource.rolloffMode = AudioRolloffMode.Linear;
         audioSource.dopplerLevel = 0f;
         audioSource.loop = true;
-        audioSource.Play(); // Start playing silence
+        
+        // Create a dummy clip at the correct sample rate to force AudioSource to use it
+        AudioClip dummyClip = AudioClip.Create("Dummy", SAMPLE_RATE, 1, SAMPLE_RATE, false);
+        audioSource.clip = dummyClip;
+        audioSource.Play(); // Start playing (OnAudioFilterRead will provide the actual data)
     }
 
     public override void Spawned()
@@ -230,18 +236,61 @@ public class StreamingProximityVoice : NetworkBehaviour
     {
         // Only process for remote players
         if (Object == null || Object.HasInputAuthority)
+        {
+            // Fill with silence for local player
+            for (int i = 0; i < data.Length; i++)
+                data[i] = 0f;
             return;
+        }
         
         lock (queueLock)
         {
+            // Wait until we have enough buffered audio before starting
+            if (!hasStartedPlayback)
+            {
+                if (audioStreamQueue.Count >= MIN_BUFFER_SAMPLES)
+                {
+                    hasStartedPlayback = true;
+                    Debug.Log($"[Voice] Started playback with {audioStreamQueue.Count} samples buffered");
+                }
+                else
+                {
+                    // Not enough data yet, output silence
+                    for (int i = 0; i < data.Length; i++)
+                        data[i] = 0f;
+                    return;
+                }
+            }
+            
+            // Play buffered audio
             for (int i = 0; i < data.Length; i += channels)
             {
-                float sample = audioStreamQueue.Count > 0 ? audioStreamQueue.Dequeue() : 0f;
+                float sample = 0f;
                 
-                // Write to all channels (mono to stereo)
+                if (audioStreamQueue.Count > 0)
+                {
+                    sample = audioStreamQueue.Dequeue();
+                }
+                else
+                {
+                    // Buffer underrun - reset playback state
+                    hasStartedPlayback = false;
+                }
+                
+                // Write to all channels (mono to stereo/multichannel)
                 for (int c = 0; c < channels; c++)
                 {
                     data[i + c] = sample;
+                }
+            }
+            
+            // Prevent queue from growing too large
+            if (audioStreamQueue.Count > SAMPLE_RATE * 2)
+            {
+                Debug.LogWarning($"[Voice] Queue overflow ({audioStreamQueue.Count}), clearing excess");
+                while (audioStreamQueue.Count > SAMPLE_RATE)
+                {
+                    audioStreamQueue.Dequeue();
                 }
             }
         }

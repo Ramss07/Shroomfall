@@ -1,12 +1,11 @@
 using UnityEngine;
 using Fusion;
-using System.Collections.Generic;
 
 /// <summary>
-/// Memory-leak-free proximity voice chat using audio streaming.
-/// This version uses OnAudioFilterRead to avoid creating/destroying AudioClips.
+/// Network-optimized proximity voice chat using Fusion's tick system.
+/// Uses a single reusable AudioClip to prevent memory leaks.
 /// </summary>
-public class StreamingProximityVoice : NetworkBehaviour
+public class SimpleProximityVoice : NetworkBehaviour
 {
     [Header("Audio Setup")]
     [SerializeField] AudioSource audioSource;
@@ -30,12 +29,12 @@ public class StreamingProximityVoice : NetworkBehaviour
     private string micDevice;
     private int lastSample = 0;
     private const int SAMPLE_RATE = 16000;
-    private const int CHUNK_SIZE = 1024;
+    private const int CHUNK_SIZE = 800;
     
-    // Streaming playback buffer
-    private Queue<float> audioStreamQueue = new Queue<float>();
-    private readonly object queueLock = new object();
-    private float lastVolume = 0f;
+    // Single reusable playback clip (prevents memory leak)
+    private AudioClip playbackClip;
+    private System.Collections.Generic.Queue<float[]> audioQueue = new System.Collections.Generic.Queue<float[]>();
+    private const int MAX_QUEUE_SIZE = 10; // Prevent queue from growing too large
 
     void Awake()
     {
@@ -52,14 +51,16 @@ public class StreamingProximityVoice : NetworkBehaviour
         audioSource.maxDistance = maxDistance;
         audioSource.rolloffMode = AudioRolloffMode.Linear;
         audioSource.dopplerLevel = 0f;
-        audioSource.loop = true;
-        audioSource.Play(); // Start playing silence
+        audioSource.loop = false;
     }
 
     public override void Spawned()
     {
         if (speakingIndicator)
             speakingIndicator.SetActive(false);
+        
+        // Create single reusable clip for playback
+        playbackClip = AudioClip.Create("VoicePlayback", CHUNK_SIZE * 2, 1, SAMPLE_RATE, false);
         
         if (Object.HasInputAuthority)
         {
@@ -70,9 +71,12 @@ public class StreamingProximityVoice : NetworkBehaviour
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         StopMicrophone();
-        lock (queueLock)
+        audioQueue.Clear();
+        
+        if (playbackClip != null)
         {
-            audioStreamQueue.Clear();
+            Destroy(playbackClip);
+            playbackClip = null;
         }
     }
 
@@ -103,15 +107,24 @@ public class StreamingProximityVoice : NetworkBehaviour
         }
     }
 
-    void Update()
+    public override void FixedUpdateNetwork()
     {
+        // Handle voice transmission on fixed network tick
         if (Object.HasInputAuthority)
         {
             HandleLocalVoice();
         }
+    }
+
+    public override void Render()
+    {
+        // Handle playback in Render for smooth audio (runs every visual frame)
+        if (!Object.HasInputAuthority && audioQueue.Count > 0)
+        {
+            ProcessAudioQueue();
+        }
         
         UpdateIndicator();
-        UpdateVolume();
     }
 
     void HandleLocalVoice()
@@ -174,8 +187,8 @@ public class StreamingProximityVoice : NetworkBehaviour
             compressed[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
         }
         
-        // Split into safe RPC sizes
-        const int maxBytesPerRpc = 400;
+        // Split into RPC-safe chunks
+        const int maxBytesPerRpc = 450;
         int numRpcs = (compressed.Length + maxBytesPerRpc - 1) / maxBytesPerRpc;
         
         for (int i = 0; i < numRpcs; i++)
@@ -203,48 +216,52 @@ public class StreamingProximityVoice : NetworkBehaviour
         if (distance > maxDistance)
             return;
         
-        // Decompress and add to stream
-        lock (queueLock)
+        // Decompress
+        float[] samples = new float[data.Length / 2];
+        for (int i = 0; i < samples.Length; i++)
         {
-            for (int i = 0; i < data.Length / 2; i++)
-            {
-                short sample = (short)(data[i * 2] | (data[i * 2 + 1] << 8));
-                float floatSample = sample / 32767f;
-                audioStreamQueue.Enqueue(floatSample);
-            }
+            short sample = (short)(data[i * 2] | (data[i * 2 + 1] << 8));
+            samples[i] = sample / 32767f;
         }
         
-        // Update target volume
-        float normalizedDistance = Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
-        lastVolume = 1f - normalizedDistance;
+        // Queue audio (limit queue size to prevent buildup)
+        if (audioQueue.Count < MAX_QUEUE_SIZE)
+        {
+            audioQueue.Enqueue(samples);
+        }
     }
 
-    void UpdateVolume()
+    void ProcessAudioQueue()
     {
-        // Smoothly transition volume
-        audioSource.volume = Mathf.Lerp(audioSource.volume, lastVolume, Time.deltaTime * 10f);
-    }
-
-    // This is called by Unity's audio system - streams audio directly
-    void OnAudioFilterRead(float[] data, int channels)
-    {
-        // Only process for remote players
-        if (Object == null || Object.HasInputAuthority)
+        // Only play if not currently playing
+        if (audioSource.isPlaying || audioQueue.Count == 0)
             return;
         
-        lock (queueLock)
+        float[] samples = audioQueue.Dequeue();
+        
+        if (NetworkPlayer.Local != null)
         {
-            for (int i = 0; i < data.Length; i += channels)
-            {
-                float sample = audioStreamQueue.Count > 0 ? audioStreamQueue.Dequeue() : 0f;
-                
-                // Write to all channels (mono to stereo)
-                for (int c = 0; c < channels; c++)
-                {
-                    data[i + c] = sample;
-                }
-            }
+            float distance = Vector3.Distance(transform.position, NetworkPlayer.Local.transform.position);
+            PlayVoice(samples, distance);
         }
+    }
+
+    void PlayVoice(float[] samples, float distance)
+    {
+        if (playbackClip == null) return;
+        
+        // Pad samples to match clip size
+        float[] paddedSamples = new float[playbackClip.samples];
+        int copyLength = Mathf.Min(samples.Length, paddedSamples.Length);
+        System.Array.Copy(samples, 0, paddedSamples, 0, copyLength);
+        
+        playbackClip.SetData(paddedSamples, 0);
+        
+        // Calculate volume based on distance
+        float volume = 1f - Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
+        
+        audioSource.volume = volume;
+        audioSource.PlayOneShot(playbackClip);
     }
 
     void UpdateIndicator()

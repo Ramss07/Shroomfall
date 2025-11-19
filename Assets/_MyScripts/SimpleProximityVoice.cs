@@ -31,10 +31,10 @@ public class SimpleProximityVoice : NetworkBehaviour
     private const int SAMPLE_RATE = 16000;
     private const int CHUNK_SIZE = 800;
     
-    // Single reusable playback clip (prevents memory leak)
-    private AudioClip playbackClip;
+    // Playback clips - pool a few to reduce allocations
     private System.Collections.Generic.Queue<float[]> audioQueue = new System.Collections.Generic.Queue<float[]>();
-    private const int MAX_QUEUE_SIZE = 10; // Prevent queue from growing too large
+    private System.Collections.Generic.Queue<AudioClip> clipPool = new System.Collections.Generic.Queue<AudioClip>();
+    private const int MAX_QUEUE_SIZE = 10;
 
     void Awake()
     {
@@ -59,9 +59,6 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (speakingIndicator)
             speakingIndicator.SetActive(false);
         
-        // Create single reusable clip for playback
-        playbackClip = AudioClip.Create("VoicePlayback", CHUNK_SIZE * 2, 1, SAMPLE_RATE, false);
-        
         if (Object.HasInputAuthority)
         {
             StartMicrophone();
@@ -73,10 +70,11 @@ public class SimpleProximityVoice : NetworkBehaviour
         StopMicrophone();
         audioQueue.Clear();
         
-        if (playbackClip != null)
+        // Clean up pooled clips
+        while (clipPool.Count > 0)
         {
-            Destroy(playbackClip);
-            playbackClip = null;
+            var clip = clipPool.Dequeue();
+            if (clip != null) Destroy(clip);
         }
     }
 
@@ -233,35 +231,88 @@ public class SimpleProximityVoice : NetworkBehaviour
 
     void ProcessAudioQueue()
     {
-        // Only play if not currently playing
-        if (audioSource.isPlaying || audioQueue.Count == 0)
-            return;
+        // Wait until we have enough buffered audio before starting playback
+        // This prevents choppy audio by ensuring continuous playback
+        const int minBufferChunks = 3; // Buffer 3 chunks (~150ms) before playing
         
-        float[] samples = audioQueue.Dequeue();
-        
-        if (NetworkPlayer.Local != null)
+        if (audioQueue.Count >= minBufferChunks && !audioSource.isPlaying)
         {
-            float distance = Vector3.Distance(transform.position, NetworkPlayer.Local.transform.position);
-            PlayVoice(samples, distance);
+            // Combine multiple chunks into one larger buffer for smooth playback
+            int totalSamples = 0;
+            var chunksToPlay = new System.Collections.Generic.List<float[]>();
+            
+            // Take all available chunks (up to a reasonable limit)
+            int chunksToTake = Mathf.Min(audioQueue.Count, 5);
+            for (int i = 0; i < chunksToTake; i++)
+            {
+                var chunk = audioQueue.Dequeue();
+                chunksToPlay.Add(chunk);
+                totalSamples += chunk.Length;
+            }
+            
+            // Combine into single buffer
+            float[] combinedSamples = new float[totalSamples];
+            int offset = 0;
+            foreach (var chunk in chunksToPlay)
+            {
+                System.Array.Copy(chunk, 0, combinedSamples, offset, chunk.Length);
+                offset += chunk.Length;
+            }
+            
+            if (NetworkPlayer.Local != null)
+            {
+                float distance = Vector3.Distance(transform.position, NetworkPlayer.Local.transform.position);
+                PlayVoice(combinedSamples, distance);
+            }
         }
     }
 
     void PlayVoice(float[] samples, float distance)
     {
-        if (playbackClip == null) return;
+        // Try to reuse a clip from the pool
+        AudioClip clip = null;
+        if (clipPool.Count > 0)
+        {
+            clip = clipPool.Dequeue();
+            // Check if clip is correct size
+            if (clip.samples != samples.Length)
+            {
+                Destroy(clip);
+                clip = null;
+            }
+        }
         
-        // Pad samples to match clip size
-        float[] paddedSamples = new float[playbackClip.samples];
-        int copyLength = Mathf.Min(samples.Length, paddedSamples.Length);
-        System.Array.Copy(samples, 0, paddedSamples, 0, copyLength);
+        // Create new clip if needed
+        if (clip == null)
+        {
+            clip = AudioClip.Create("VoicePlayback", samples.Length, 1, SAMPLE_RATE, false);
+        }
         
-        playbackClip.SetData(paddedSamples, 0);
+        clip.SetData(samples, 0);
         
         // Calculate volume based on distance
         float volume = 1f - Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
         
         audioSource.volume = volume;
-        audioSource.PlayOneShot(playbackClip);
+        audioSource.PlayOneShot(clip);
+        
+        // Return clip to pool after it finishes playing
+        StartCoroutine(ReturnClipToPool(clip, clip.length));
+    }
+    
+    System.Collections.IEnumerator ReturnClipToPool(AudioClip clip, float delay)
+    {
+        yield return new WaitForSeconds(delay + 0.1f);
+        
+        // Only pool if we don't have too many
+        if (clipPool.Count < 5)
+        {
+            clipPool.Enqueue(clip);
+        }
+        else
+        {
+            Destroy(clip);
+        }
     }
 
     void UpdateIndicator()

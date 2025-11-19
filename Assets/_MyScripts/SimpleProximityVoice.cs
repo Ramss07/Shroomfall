@@ -49,10 +49,12 @@ public class SimpleProximityVoice : NetworkBehaviour
     private string micDevice;
     private int lastSample = 0;
     private const int SAMPLE_RATE = 16000;
-    private const int CHUNK_SIZE = 240;  // Reduced from 1024 to fit in one RPC (240 samples = 480 bytes)
+    private const int CHUNK_SIZE = 480;  // 480 samples = 960 bytes (need to split into 2 RPCs)
     
-    // Playback
+    // Playback buffering
     private AudioClip playbackClip;
+    private System.Collections.Generic.Queue<float[]> audioQueue = new System.Collections.Generic.Queue<float[]>();
+    private bool isPlaying = false;
 
     void Awake()
     {
@@ -186,7 +188,6 @@ public class SimpleProximityVoice : NetworkBehaviour
     void TransmitAudio(float[] samples)
     {
         // Compress to bytes (simple int16 encoding)
-        // 240 samples = 480 bytes, which fits in Fusion's 512-byte RPC limit
         byte[] compressed = new byte[samples.Length * 2];
         
         for (int i = 0; i < samples.Length; i++)
@@ -196,8 +197,20 @@ public class SimpleProximityVoice : NetworkBehaviour
             compressed[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
         }
         
-        // Send via RPC (now fits in single call!)
-        RPC_ReceiveVoice(compressed);
+        // Split into chunks that fit in RPC limit (480 bytes per RPC)
+        const int maxBytesPerRpc = 480;
+        int numRpcs = (compressed.Length + maxBytesPerRpc - 1) / maxBytesPerRpc;
+        
+        for (int i = 0; i < numRpcs; i++)
+        {
+            int offset = i * maxBytesPerRpc;
+            int size = Mathf.Min(maxBytesPerRpc, compressed.Length - offset);
+            
+            byte[] chunk = new byte[size];
+            System.Array.Copy(compressed, offset, chunk, 0, size);
+            
+            RPC_ReceiveVoice(chunk);
+        }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
@@ -223,13 +236,58 @@ public class SimpleProximityVoice : NetworkBehaviour
             samples[i] = sample / 32767f;
         }
         
-        // Play
-        PlayVoice(samples, distance);
+        // Queue the audio chunk
+        audioQueue.Enqueue(samples);
+    }
+    
+    void LateUpdate()
+    {
+        // Process audio queue for remote players
+        if (!Object.HasInputAuthority && audioQueue.Count > 0)
+        {
+            ProcessAudioQueue();
+        }
+    }
+    
+    void ProcessAudioQueue()
+    {
+        // If not currently playing and we have queued audio, start playing
+        if (!audioSource.isPlaying && audioQueue.Count > 0)
+        {
+            // Combine multiple chunks for smoother playback (30ms worth)
+            int chunksToPlay = Mathf.Min(audioQueue.Count, 2); // Combine 2 chunks = ~60ms
+            
+            int totalSamples = 0;
+            var chunksToProcess = new System.Collections.Generic.List<float[]>();
+            
+            for (int i = 0; i < chunksToPlay && audioQueue.Count > 0; i++)
+            {
+                var chunk = audioQueue.Dequeue();
+                chunksToProcess.Add(chunk);
+                totalSamples += chunk.Length;
+            }
+            
+            // Combine chunks
+            float[] combinedSamples = new float[totalSamples];
+            int offset = 0;
+            foreach (var chunk in chunksToProcess)
+            {
+                System.Array.Copy(chunk, 0, combinedSamples, offset, chunk.Length);
+                offset += chunk.Length;
+            }
+            
+            // Calculate distance for volume
+            if (NetworkPlayer.Local != null)
+            {
+                float distance = Vector3.Distance(transform.position, NetworkPlayer.Local.transform.position);
+                PlayVoice(combinedSamples, distance);
+            }
+        }
     }
 
     void PlayVoice(float[] samples, float distance)
     {
-        // Create clip
+        // Create or recreate clip if size changed
         if (playbackClip == null || playbackClip.samples != samples.Length)
         {
             playbackClip = AudioClip.Create("Voice", samples.Length, 1, SAMPLE_RATE, false);
@@ -241,7 +299,8 @@ public class SimpleProximityVoice : NetworkBehaviour
         float volume = 1f - Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
         
         audioSource.volume = volume;
-        audioSource.PlayOneShot(playbackClip);
+        audioSource.clip = playbackClip;
+        audioSource.Play();
     }
 
     void UpdateIndicator()

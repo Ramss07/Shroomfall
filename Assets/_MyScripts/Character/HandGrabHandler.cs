@@ -6,32 +6,42 @@ using System.Collections.Generic;
 [RequireComponent(typeof(Rigidbody))]
 public class HandGrabHandler : MonoBehaviour
 {
+    [Header("Visuals / Feedback")]
     [SerializeField] Animator animator;
-
-    // Networked prefab (must have NetworkObject + NetworkTransform)
     [SerializeField] NetworkObject grabIndicatorPrefab;
+
+    [Header("Mass Tweaks")]
     [SerializeField] float grabbedMassScale = 0.1f;
     [SerializeField] float liftableMaxMass = 5f;
     [SerializeField] float minGrabbedMass = 0.1f;
 
+    [Header("Arm Stiffness")]
+    [SerializeField] ConfigurableJoint armJoint;   // drag the correct arm joint in the Inspector
+    [SerializeField] float grabSpring = 500f;      // stiffer while grabbing
+    float defaultSpring;
+
+    // Mass management (shared across hands)
+    static Dictionary<Rigidbody, (float originalMass, int grabCount)> massData =
+        new Dictionary<Rigidbody, (float originalMass, int grabCount)>();
+
+    // Per-hand runtime state
     Rigidbody grabbedBody;
-    float grabbedBodyOriginalMass;
     bool hasMassOverride = false;
-    
-    static Dictionary<Rigidbody, (float originalMass, int grabCount)> massData = new Dictionary<Rigidbody, (float originalMass, int grabCount)>();
 
     FixedJoint fixedJoint;
     Rigidbody rigidbody3D;
 
-    // Spawned networked indicator instance
     NetworkObject grabIndicatorNO;
     NetworkPlayer networkPlayer;
+
     public enum HandSide { Left, Right }
     [SerializeField] HandSide side = HandSide.Left;
+
     public bool IsLatched => fixedJoint != null;
     public HandSide Side => side;
     public Rigidbody ConnectedBody => fixedJoint ? fixedJoint.connectedBody : null;
-    public bool IsLatchedToKinematic => fixedJoint && fixedJoint.connectedBody && fixedJoint.connectedBody.isKinematic;
+    public bool IsLatchedToKinematic =>
+        fixedJoint && fixedJoint.connectedBody && fixedJoint.connectedBody.isKinematic;
 
     double nextAllowedGrabTime = -1;
     const double regrabDelay = 0.25;
@@ -41,22 +51,45 @@ public class HandGrabHandler : MonoBehaviour
     void Awake()
     {
         networkPlayer = transform.root.GetComponent<NetworkPlayer>();
-        rigidbody3D   = GetComponent<Rigidbody>();
+        rigidbody3D = GetComponent<Rigidbody>();
         rigidbody3D.solverIterations = 255;
+
+        // Cache default spring from the assigned arm joint
+        if (armJoint != null)
+        {
+            var d = armJoint.slerpDrive;
+            defaultSpring = d.positionSpring;
+        }
+        else
+        {
+            Debug.LogWarning($"[HandGrabHandler] No armJoint assigned on {name}. Arm stiffness won't change.");
+        }
 
         string paramName = (side == HandSide.Left) ? "IsLeftGrabbing" : "IsRightGrabbing";
         grabParamHash = Animator.StringToHash(paramName);
     }
 
+    void SetArmStiff(bool grabbing)
+    {
+        if (armJoint == null) return;
+
+        float targetSpring = grabbing ? grabSpring : defaultSpring;
+
+        var drive = armJoint.slerpDrive;
+        drive.positionSpring = targetSpring;
+        armJoint.slerpDrive = drive;
+    }
+
     public void UpdateState()
     {
-        bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
+        bool handWantsGrab =
+            (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
 
         if (handWantsGrab)
         {
             if (animator) animator.SetBool(grabParamHash, true);
 
-            // Keep indicator following the grab point while holding (authority moves; NetworkTransform replicates)
+            // Keep indicator following the grab point while holding
             if (fixedJoint != null && grabIndicatorNO != null && fixedJoint.connectedBody != null)
             {
                 grabIndicatorNO.transform.position =
@@ -65,18 +98,11 @@ public class HandGrabHandler : MonoBehaviour
         }
         else
         {
-            // Release: drop joint, toss a bit, remove indicator
+            // Released grab intent: drop joint, restore mass, despawn indicator, relax arm
             if (fixedJoint != null)
             {
-                if (fixedJoint.connectedBody != null)
-                {
-                    float forceAmountMultiplier = 5f;
-                    if (fixedJoint.connectedBody.transform.root.TryGetComponent(out NetworkPlayer otherNetworkPlayer))
-                        forceAmountMultiplier = otherNetworkPlayer.IsActiveRagdoll ? 15f : 10f;
-                        
-                    if (hasMassOverride && grabbedBody == fixedJoint.connectedBody)
-                        RestoreGrabbedBodyMass();
-                }
+                if (hasMassOverride && grabbedBody == fixedJoint.connectedBody)
+                    RestoreGrabbedBodyMass();
 
                 Destroy(fixedJoint);
                 fixedJoint = null;
@@ -88,74 +114,74 @@ public class HandGrabHandler : MonoBehaviour
                 grabIndicatorNO = null;
             }
 
+            SetArmStiff(false);
+
             if (animator) animator.SetBool(grabParamHash, false);
         }
     }
 
     bool TryCarryObject(Collision collision)
     {
+        // Only state authority actually attaches stuff
         if (!networkPlayer.Object.HasStateAuthority) return false;
         if (!networkPlayer.IsActiveRagdoll) return false;
         if (networkPlayer.Runner.SimulationTime < nextAllowedGrabTime) return false;
         if (networkPlayer.Stamina <= 0) return false;
 
-        bool handWantsGrab = (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
+        bool handWantsGrab =
+            (side == HandSide.Left) ? networkPlayer.IsLeftGrab : networkPlayer.IsRightGrab;
         if (!handWantsGrab) return false;
 
         if (fixedJoint != null) return false;
         if (collision.transform.root == networkPlayer.transform) return false;
 
-        if (!collision.collider.TryGetComponent(out Rigidbody otherObjectRigidbody)) return false;
+        if (!collision.collider.TryGetComponent(out Rigidbody otherBody)) return false;
 
+        // Contact point for stable anchor
         Vector3 contact = (collision.contactCount > 0)
             ? collision.GetContact(0).point
             : collision.collider.ClosestPoint(transform.position);
 
+        // Create joint
         fixedJoint = gameObject.AddComponent<FixedJoint>();
-        fixedJoint.connectedBody = otherObjectRigidbody;
+        fixedJoint.connectedBody = otherBody;
         fixedJoint.autoConfigureConnectedAnchor = false;
-
-        fixedJoint.anchor          = transform.InverseTransformPoint(contact);
-        fixedJoint.connectedAnchor = otherObjectRigidbody.transform.InverseTransformPoint(contact);
-
-        fixedJoint.breakForce  = 500f;
+        fixedJoint.anchor = transform.InverseTransformPoint(contact);
+        fixedJoint.connectedAnchor = otherBody.transform.InverseTransformPoint(contact);
+        fixedJoint.breakForce = 500f;
         fixedJoint.breakTorque = 500f;
 
-        grabbedBody = otherObjectRigidbody;
+        grabbedBody = otherBody;
+        hasMassOverride = false;
 
-        if (!grabbedBody.isKinematic)
+        // Mass scaling for liftable non-kinematic bodies
+        if (!grabbedBody.isKinematic && grabbedBody.mass <= liftableMaxMass)
         {
-            if (grabbedBody.mass <= liftableMaxMass)
+            if (!massData.TryGetValue(grabbedBody, out var data))
             {
-                if (!massData.TryGetValue(grabbedBody, out var data))
-                {
-                    data.originalMass = grabbedBody.mass;
-                    data.grabCount    = 0;
-                }
-
-                data.grabCount++;
-
-                if (data.grabCount == 1)
-                {
-                    float targetMass = data.originalMass * grabbedMassScale;
-                    grabbedBody.mass = Mathf.Max(targetMass, minGrabbedMass);
-                }
-
-                massData[grabbedBody] = data;
-                hasMassOverride       = true;
+                data.originalMass = grabbedBody.mass;
+                data.grabCount = 0;
             }
-            else
+
+            data.grabCount++;
+
+            if (data.grabCount == 1)
             {
-                hasMassOverride = false;
+                float targetMass = data.originalMass * grabbedMassScale;
+                grabbedBody.mass = Mathf.Max(targetMass, minGrabbedMass);
             }
+
+            massData[grabbedBody] = data;
+            hasMassOverride = true;
         }
         else
         {
-            grabbedBody     = null;
+            grabbedBody = null;
             hasMassOverride = false;
         }
 
         ShowGrabIndicator(contact);
+        SetArmStiff(true);
 
         if (animator) animator.SetBool(grabParamHash, true);
         return true;
@@ -189,6 +215,12 @@ public class HandGrabHandler : MonoBehaviour
             networkPlayer.Runner.Despawn(grabIndicatorNO);
             grabIndicatorNO = null;
         }
+
+        if (hasMassOverride)
+            RestoreGrabbedBodyMass();
+
+        SetArmStiff(false);
+
         if (animator) animator.SetBool(grabParamHash, false);
         return true;
     }
@@ -200,10 +232,14 @@ public class HandGrabHandler : MonoBehaviour
             Destroy(fixedJoint);
             fixedJoint = null;
         }
+
         if (hasMassOverride)
             RestoreGrabbedBodyMass();
 
+        SetArmStiff(false);
+
         if (animator) animator.SetBool(grabParamHash, false);
+
         if (grabIndicatorNO)
         {
             networkPlayer.Runner.Despawn(grabIndicatorNO);
@@ -230,7 +266,8 @@ public class HandGrabHandler : MonoBehaviour
                 massData[grabbedBody] = data;
             }
         }
+
         hasMassOverride = false;
-        grabbedBody     = null;
+        grabbedBody = null;
     }
 }

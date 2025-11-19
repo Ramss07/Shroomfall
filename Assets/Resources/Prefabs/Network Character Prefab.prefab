@@ -181,6 +181,8 @@ MonoBehaviour:
   grabbedMassScale: 0.1
   liftableMaxMass: 5
   minGrabbedMass: 0.1
+  armJoint: {fileID: 3314826856880346131}
+  grabSpring: 500
   side: 1
 --- !u!136 &420452603282525450
 CapsuleCollider:
@@ -386,6 +388,8 @@ MonoBehaviour:
   grabbedMassScale: 0.1
   liftableMaxMass: 5
   minGrabbedMass: 0.1
+  armJoint: {fileID: 1742373478128503291}
+  grabSpring: 500
   side: 0
 --- !u!136 &766765846232098306
 CapsuleCollider:

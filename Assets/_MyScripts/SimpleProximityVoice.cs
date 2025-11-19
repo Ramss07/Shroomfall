@@ -49,7 +49,7 @@ public class SimpleProximityVoice : NetworkBehaviour
     private string micDevice;
     private int lastSample = 0;
     private const int SAMPLE_RATE = 16000;
-    private const int CHUNK_SIZE = 1024;
+    private const int CHUNK_SIZE = 240;  // Reduced from 1024 to fit in one RPC (240 samples = 480 bytes)
     
     // Playback
     private AudioClip playbackClip;
@@ -186,6 +186,7 @@ public class SimpleProximityVoice : NetworkBehaviour
     void TransmitAudio(float[] samples)
     {
         // Compress to bytes (simple int16 encoding)
+        // 240 samples = 480 bytes, which fits in Fusion's 512-byte RPC limit
         byte[] compressed = new byte[samples.Length * 2];
         
         for (int i = 0; i < samples.Length; i++)
@@ -195,7 +196,7 @@ public class SimpleProximityVoice : NetworkBehaviour
             compressed[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
         }
         
-        // Send via RPC
+        // Send via RPC (now fits in single call!)
         RPC_ReceiveVoice(compressed);
     }
 

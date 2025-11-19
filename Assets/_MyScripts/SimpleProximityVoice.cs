@@ -1,11 +1,12 @@
 using UnityEngine;
 using Fusion;
+using System.Collections.Generic;
 
 /// <summary>
-/// Network-optimized proximity voice chat using Fusion's tick system.
-/// Uses a single reusable AudioClip to prevent memory leaks.
+/// Memory-leak-free proximity voice chat using audio streaming.
+/// This version uses OnAudioFilterRead to avoid creating/destroying AudioClips.
 /// </summary>
-public class SimpleProximityVoice : NetworkBehaviour
+public class StreamingProximityVoice : NetworkBehaviour
 {
     [Header("Audio Setup")]
     [SerializeField] AudioSource audioSource;
@@ -29,12 +30,12 @@ public class SimpleProximityVoice : NetworkBehaviour
     private string micDevice;
     private int lastSample = 0;
     private const int SAMPLE_RATE = 16000;
-    private const int CHUNK_SIZE = 800;
+    private const int CHUNK_SIZE = 1024;
     
-    // Playback clips - pool a few to reduce allocations
-    private System.Collections.Generic.Queue<float[]> audioQueue = new System.Collections.Generic.Queue<float[]>();
-    private System.Collections.Generic.Queue<AudioClip> clipPool = new System.Collections.Generic.Queue<AudioClip>();
-    private const int MAX_QUEUE_SIZE = 10;
+    // Streaming playback buffer
+    private Queue<float> audioStreamQueue = new Queue<float>();
+    private readonly object queueLock = new object();
+    private float lastVolume = 0f;
 
     void Awake()
     {
@@ -51,7 +52,8 @@ public class SimpleProximityVoice : NetworkBehaviour
         audioSource.maxDistance = maxDistance;
         audioSource.rolloffMode = AudioRolloffMode.Linear;
         audioSource.dopplerLevel = 0f;
-        audioSource.loop = false;
+        audioSource.loop = true;
+        audioSource.Play(); // Start playing silence
     }
 
     public override void Spawned()
@@ -68,13 +70,9 @@ public class SimpleProximityVoice : NetworkBehaviour
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         StopMicrophone();
-        audioQueue.Clear();
-        
-        // Clean up pooled clips
-        while (clipPool.Count > 0)
+        lock (queueLock)
         {
-            var clip = clipPool.Dequeue();
-            if (clip != null) Destroy(clip);
+            audioStreamQueue.Clear();
         }
     }
 
@@ -105,24 +103,15 @@ public class SimpleProximityVoice : NetworkBehaviour
         }
     }
 
-    public override void FixedUpdateNetwork()
+    void Update()
     {
-        // Handle voice transmission on fixed network tick
         if (Object.HasInputAuthority)
         {
             HandleLocalVoice();
         }
-    }
-
-    public override void Render()
-    {
-        // Handle playback in Render for smooth audio (runs every visual frame)
-        if (!Object.HasInputAuthority && audioQueue.Count > 0)
-        {
-            ProcessAudioQueue();
-        }
         
         UpdateIndicator();
+        UpdateVolume();
     }
 
     void HandleLocalVoice()
@@ -185,8 +174,8 @@ public class SimpleProximityVoice : NetworkBehaviour
             compressed[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
         }
         
-        // Split into RPC-safe chunks
-        const int maxBytesPerRpc = 450;
+        // Split into safe RPC sizes
+        const int maxBytesPerRpc = 400;
         int numRpcs = (compressed.Length + maxBytesPerRpc - 1) / maxBytesPerRpc;
         
         for (int i = 0; i < numRpcs; i++)
@@ -214,104 +203,47 @@ public class SimpleProximityVoice : NetworkBehaviour
         if (distance > maxDistance)
             return;
         
-        // Decompress
-        float[] samples = new float[data.Length / 2];
-        for (int i = 0; i < samples.Length; i++)
+        // Decompress and add to stream
+        lock (queueLock)
         {
-            short sample = (short)(data[i * 2] | (data[i * 2 + 1] << 8));
-            samples[i] = sample / 32767f;
+            for (int i = 0; i < data.Length / 2; i++)
+            {
+                short sample = (short)(data[i * 2] | (data[i * 2 + 1] << 8));
+                float floatSample = sample / 32767f;
+                audioStreamQueue.Enqueue(floatSample);
+            }
         }
         
-        // Queue audio (limit queue size to prevent buildup)
-        if (audioQueue.Count < MAX_QUEUE_SIZE)
-        {
-            audioQueue.Enqueue(samples);
-        }
+        // Update target volume
+        float normalizedDistance = Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
+        lastVolume = 1f - normalizedDistance;
     }
 
-    void ProcessAudioQueue()
+    void UpdateVolume()
     {
-        // Wait until we have enough buffered audio before starting playback
-        // This prevents choppy audio by ensuring continuous playback
-        const int minBufferChunks = 3; // Buffer 3 chunks (~150ms) before playing
-        
-        if (audioQueue.Count >= minBufferChunks && !audioSource.isPlaying)
-        {
-            // Combine multiple chunks into one larger buffer for smooth playback
-            int totalSamples = 0;
-            var chunksToPlay = new System.Collections.Generic.List<float[]>();
-            
-            // Take all available chunks (up to a reasonable limit)
-            int chunksToTake = Mathf.Min(audioQueue.Count, 5);
-            for (int i = 0; i < chunksToTake; i++)
-            {
-                var chunk = audioQueue.Dequeue();
-                chunksToPlay.Add(chunk);
-                totalSamples += chunk.Length;
-            }
-            
-            // Combine into single buffer
-            float[] combinedSamples = new float[totalSamples];
-            int offset = 0;
-            foreach (var chunk in chunksToPlay)
-            {
-                System.Array.Copy(chunk, 0, combinedSamples, offset, chunk.Length);
-                offset += chunk.Length;
-            }
-            
-            if (NetworkPlayer.Local != null)
-            {
-                float distance = Vector3.Distance(transform.position, NetworkPlayer.Local.transform.position);
-                PlayVoice(combinedSamples, distance);
-            }
-        }
+        // Smoothly transition volume
+        audioSource.volume = Mathf.Lerp(audioSource.volume, lastVolume, Time.deltaTime * 10f);
     }
 
-    void PlayVoice(float[] samples, float distance)
+    // This is called by Unity's audio system - streams audio directly
+    void OnAudioFilterRead(float[] data, int channels)
     {
-        // Try to reuse a clip from the pool
-        AudioClip clip = null;
-        if (clipPool.Count > 0)
+        // Only process for remote players
+        if (Object == null || Object.HasInputAuthority)
+            return;
+        
+        lock (queueLock)
         {
-            clip = clipPool.Dequeue();
-            // Check if clip is correct size
-            if (clip.samples != samples.Length)
+            for (int i = 0; i < data.Length; i += channels)
             {
-                Destroy(clip);
-                clip = null;
+                float sample = audioStreamQueue.Count > 0 ? audioStreamQueue.Dequeue() : 0f;
+                
+                // Write to all channels (mono to stereo)
+                for (int c = 0; c < channels; c++)
+                {
+                    data[i + c] = sample;
+                }
             }
-        }
-        
-        // Create new clip if needed
-        if (clip == null)
-        {
-            clip = AudioClip.Create("VoicePlayback", samples.Length, 1, SAMPLE_RATE, false);
-        }
-        
-        clip.SetData(samples, 0);
-        
-        // Calculate volume based on distance
-        float volume = 1f - Mathf.Clamp01((distance - minDistance) / (maxDistance - minDistance));
-        
-        audioSource.volume = volume;
-        audioSource.PlayOneShot(clip);
-        
-        // Return clip to pool after it finishes playing
-        StartCoroutine(ReturnClipToPool(clip, clip.length));
-    }
-    
-    System.Collections.IEnumerator ReturnClipToPool(AudioClip clip, float delay)
-    {
-        yield return new WaitForSeconds(delay + 0.1f);
-        
-        // Only pool if we don't have too many
-        if (clipPool.Count < 5)
-        {
-            clipPool.Enqueue(clip);
-        }
-        else
-        {
-            Destroy(clip);
         }
     }
 

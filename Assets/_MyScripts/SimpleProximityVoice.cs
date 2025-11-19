@@ -32,7 +32,7 @@ public class SimpleProximityVoice : NetworkBehaviour
     [SerializeField] KeyCode talkKey = KeyCode.V;
     
     [Tooltip("If true, voice is always transmitted (no push-to-talk)")]
-    [SerializeField] bool alwaysOn = false;
+    [SerializeField] bool alwaysOn = true;
     
     [Tooltip("Minimum volume to start transmitting (noise gate)")]
     [SerializeField, Range(0f, 0.1f)] float noiseGate = 0.01f;

@@ -12,7 +12,7 @@ public class HandGrabHandler : MonoBehaviour
 
     [Header("Mass Tweaks")]
     [SerializeField] float grabbedMassScale = 0.1f;
-    [SerializeField] float liftableMaxMass = 5f;
+    [SerializeField] float liftableMaxMass = 10f;
     [SerializeField] float minGrabbedMass = 0.1f;
 
     [Header("Arm Stiffness")]

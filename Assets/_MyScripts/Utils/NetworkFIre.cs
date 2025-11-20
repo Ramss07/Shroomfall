@@ -32,6 +32,7 @@ public class NetworkFire : NetworkBehaviour
     // Actual durations used at runtime (either auto or manual)
     float smokeDuration;
     float fireDuration;
+    Rigidbody _rb;
 
     // Networked state (authoritative on StateAuthority)
     [Networked] public NetworkBool IsSmoking   { get; set; }
@@ -53,6 +54,7 @@ public class NetworkFire : NetworkBehaviour
     void Awake()
     {
         AutoConfigureDurations();
+        _rb = GetComponent<Rigidbody>();
     }
 
 #if UNITY_EDITOR
@@ -224,6 +226,19 @@ public class NetworkFire : NetworkBehaviour
     {
         if (_hasDissolvePlayed) return;
         _hasDissolvePlayed = true;
+
+        // Tell any hands grabbing this rigidbody to release
+        if (_rb != null)
+        {
+            var hands = FindObjectsOfType<HandGrabHandler>();
+            for (int i = 0; i < hands.Length; i++)
+            {
+                if (hands[i].ConnectedBody == _rb)
+                {
+                    hands[i].ReleaseIfLatched();
+                }
+            }
+        }
 
         if (fire != null)    fire.Stop();
         if (smoke != null)   smoke.Stop();

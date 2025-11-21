@@ -148,8 +148,8 @@ public class HandGrabHandler : MonoBehaviour
         fixedJoint.autoConfigureConnectedAnchor = false;
         fixedJoint.anchor = transform.InverseTransformPoint(contact);
         fixedJoint.connectedAnchor = otherBody.transform.InverseTransformPoint(contact);
-        fixedJoint.breakForce = 500f;
-        fixedJoint.breakTorque = 500f;
+        fixedJoint.breakForce = 1000f;
+        fixedJoint.breakTorque = 1000f;
 
         grabbedBody = otherBody;
         hasMassOverride = false;

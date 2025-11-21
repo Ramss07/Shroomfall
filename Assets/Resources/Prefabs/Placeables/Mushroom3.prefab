@@ -126,6 +126,7 @@ MonoBehaviour:
   dissolve: {fileID: 1016563846217414271}
   smokeOnStart: 0
   dissolvable: 1
+  destroyChildrenOnDissolve: 1
   autoConfigureFromMass: 1
   defaultMass: 6
   smokePerKg: 0.5

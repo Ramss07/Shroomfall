@@ -55,8 +55,8 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
 
     // Health
     [Header("Health Settings")]
-    [SerializeField] private int maxHp = 100;
-    [Networked] public int Hp { get; set; }
+    [SerializeField] private float maxHp = 100;
+    [Networked] public float Hp { get; set; }
     [Networked] public NetworkBool IsDead { get; set; }
     public float HpPercent => maxHp <= 0 ? 0f : (float)Hp / maxHp;
 
@@ -542,6 +542,20 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
             MakeRagdoll();
         }
     }
+    public void TakeFireDamage(float dmgPerTick)
+    {
+        if (!Object.HasStateAuthority || IsDead) return;
+
+        Hp = Mathf.Max(0, Hp - dmgPerTick);
+
+        if (Hp == 0 && !IsDead)
+        {
+            RpcDeathFade(true);
+            IsDead = true;
+            MakeRagdoll();
+        }
+    }
+
 
     void MakeRagdoll()
     {

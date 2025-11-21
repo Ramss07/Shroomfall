@@ -130,8 +130,9 @@ MonoBehaviour:
   dissolve: {fileID: 3469623433451236463}
   smokeOnStart: 0
   dissolvable: 1
+  dissolveMode: 0
   autoConfigureFromMass: 1
-  defaultMass: 5
+  defaultMass: 3
   smokePerKg: 0.5
   firePerKg: 2
   smokeDurationRange: {x: 0.3, y: 5}

@@ -13,12 +13,22 @@ public class NetworkFire : NetworkBehaviour
     [Header("General Settings")]
     [SerializeField] bool smokeOnStart = false;
     [SerializeField] bool dissolvable  = true;
+    public enum DissolveMode
+    {
+        FullHierarchy,   // dissolve + hide everything (parent + children)
+        ParentOnly,      // only hide the parent's meshes/colliders
+        VisualOnly       // just play FX, don't hide/destroy
+    }
+
+    [Header("Dissolve Settings")]
+    [SerializeField] DissolveMode dissolveMode = DissolveMode.FullHierarchy;
+
 
     [Tooltip("If true, smoke & fire durations are derived from Rigidbody.mass.")]
     [Header("Auto Duration From Mass")]
     [SerializeField] bool autoConfigureFromMass = true;
     [SerializeField] float defaultMass = 5f;
-    [SerializeField] float smokePerKg = 0.5f;         // seconds of smoke per 1 mass unit
+    [SerializeField] float smokePerKg = 0.2f;         // seconds of smoke per 1 mass unit
     [SerializeField] float firePerKg  = 2f;         // seconds of fire per 1 mass unit
     [SerializeField] Vector2 smokeDurationRange = new Vector2(0.3f, 5f);
     [SerializeField] Vector2 fireDurationRange  = new Vector2(3f, 30f);
@@ -119,7 +129,7 @@ public class NetworkFire : NetworkBehaviour
     public void IgniteSmoke()
     {
         if (!Object.HasStateAuthority) return;
-        if (IsBurning || IsDissolved)  return; // already burning/finished
+        if (IsBurning)  return; // already burning
 
         IsSmoking    = true;
         SmokeEndTime = Runner.SimulationTime + smokeDuration;
@@ -129,7 +139,6 @@ public class NetworkFire : NetworkBehaviour
     public void IgniteFire()
     {
         if (!Object.HasStateAuthority) return;
-        if (IsDissolved) return;
 
         IsSmoking  = false;
         IsBurning  = true;
@@ -143,7 +152,6 @@ public class NetworkFire : NetworkBehaviour
 
         IsSmoking   = false;
         IsBurning   = false;
-        // Don’t change IsDissolved here
     }
 
     public override void FixedUpdateNetwork()
@@ -152,22 +160,39 @@ public class NetworkFire : NetworkBehaviour
 
         double now = Runner.SimulationTime;
 
+        if (IsBurning)
+        {
+            // Check if this fire is on the player
+            if (TryGetComponent<NetworkPlayer>(out var player))
+            {
+                player.TakeFireDamage(0.08f);
+            }
+        }
+
         // Smoking → Fire after duration
         if (IsSmoking && now >= SmokeEndTime)
         {
             IgniteFire();
         }
 
-        // Fire → Dissolve (optional)
-        if (IsBurning && dissolvable && now >= FireEndTime)
+        // Fire finished
+        if (IsBurning && now >= FireEndTime)
         {
-            BeginDissolve();
+            if (dissolvable)
+                BeginDissolve();
         }
     }
+
 
     void BeginDissolve()
     {
         if (!Object.HasStateAuthority) return;
+        if (dissolveMode == DissolveMode.VisualOnly)
+        {
+            IsBurning = false;
+            IsSmoking = false;
+            return;
+        }
         if (IsDissolved) return;
 
         IsBurning   = false;
@@ -242,18 +267,52 @@ public class NetworkFire : NetworkBehaviour
 
         if (fire != null)    fire.Stop();
         if (smoke != null)   smoke.Stop();
-        if (dissolve != null) dissolve.Play();
+        if (dissolveMode != DissolveMode.VisualOnly && dissolve != null)
+            dissolve.Play();
 
-        // Hide mesh & disable colliders locally
-        var mr  = GetComponent<MeshRenderer>();
-        var smr = GetComponentInChildren<SkinnedMeshRenderer>();
+        // Decide what to actually hide based on dissolveMode
+        switch (dissolveMode)
+        {
+            case DissolveMode.FullHierarchy:
+            {
+                MeshRenderer[] meshRends = GetComponentsInChildren<MeshRenderer>(true);
+                for (int i = 0; i < meshRends.Length; i++)
+                    meshRends[i].enabled = false;
 
-        if (mr)  mr.enabled  = false;
-        if (smr) smr.enabled = false;
+                SkinnedMeshRenderer[] skinnedRends = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                for (int i = 0; i < skinnedRends.Length; i++)
+                    skinnedRends[i].enabled = false;
 
-        foreach (var c in GetComponents<Collider>())
-            c.enabled = false;
-        foreach (var c in GetComponentsInChildren<Collider>())
-            c.enabled = false;
+                // Disable all colliders (root + children)
+                Collider[] colliders = GetComponentsInChildren<Collider>(true);
+                for (int i = 0; i < colliders.Length; i++)
+                    colliders[i].enabled = false;
+
+                break;
+            }
+
+            case DissolveMode.ParentOnly:
+            {
+                var mr  = GetComponent<MeshRenderer>();
+                var smr = GetComponent<SkinnedMeshRenderer>();
+
+                if (mr)  mr.enabled  = false;
+                if (smr) smr.enabled = false;
+
+                // Disable colliders on the root only
+                Collider[] rootColliders = GetComponents<Collider>();
+                for (int i = 0; i < rootColliders.Length; i++)
+                    rootColliders[i].enabled = false;
+
+                // Children stay as-is
+                break;
+            }
+
+            case DissolveMode.VisualOnly:
+            {
+                break;
+            }
+        }
     }
+
 }

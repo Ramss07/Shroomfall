@@ -2422,11 +2422,12 @@ MonoBehaviour:
   fire: {fileID: 5656358107880061306}
   dissolve: {fileID: 6374859335307242864}
   smokeOnStart: 0
-  dissolvable: 0
-  autoConfigureFromMass: 0
-  defaultMass: 5
-  smokePerKg: 0.5
-  firePerKg: 2
+  dissolvable: 1
+  dissolveMode: 2
+  autoConfigureFromMass: 1
+  defaultMass: 8
+  smokePerKg: 0
+  firePerKg: 3
   smokeDurationRange: {x: 0.3, y: 5}
   fireDurationRange: {x: 3, y: 30}
   maxDissolvableMass: 40
@@ -12243,7 +12244,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6828724066909572361, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 6828724066909572361, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: ShapeModule.m_SkinnedMeshRenderer
@@ -12259,7 +12260,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6828762960853678123, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 6828762960853678123, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: ShapeModule.m_SkinnedMeshRenderer
@@ -12275,7 +12276,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6828854344972273109, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 6828854344972273109, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: ShapeModule.m_SkinnedMeshRenderer
@@ -12287,6 +12288,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6829319752001773299, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
       propertyPath: ShapeModule.radiusThickness
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6829319752001773299, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}
+      propertyPath: InitialModule.startSize.minScalar
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6829319752001773299, guid: a6c391e2050996d47aee6f89ec1520e6, type: 3}

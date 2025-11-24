@@ -150,6 +150,11 @@ public class HandGrabHandler : MonoBehaviour
         fixedJoint.connectedAnchor = otherBody.transform.InverseTransformPoint(contact);
         fixedJoint.breakForce = 1000f;
         fixedJoint.breakTorque = 1000f;
+        var soundProfile = otherBody.GetComponent<SoundProfile>();
+        if (soundProfile != null)
+        {
+            soundProfile.PlayLocal(SoundProfile.SoundEvent.Grab, contact, 1f);
+        }
 
         grabbedBody = otherBody;
         hasMassOverride = false;

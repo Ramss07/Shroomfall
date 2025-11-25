@@ -2054,7 +2054,7 @@ GameObject:
   - component: {fileID: 8378153105380001283}
   - component: {fileID: 6081930473355302252}
   - component: {fileID: 5829652139344147825}
-  - component: {fileID: -4125269566211074152}
+  - component: {fileID: -2877669096778517654}
   m_Layer: 0
   m_Name: Network Character Prefab
   m_TagString: Untagged
@@ -2313,7 +2313,7 @@ MonoBehaviour:
   - {fileID: 2095321955399542329}
   - {fileID: 8378153105380001283}
   - {fileID: 5829652139344147825}
-  - {fileID: -4125269566211074152}
+  - {fileID: -2877669096778517654}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &8378153105380001283
 MonoBehaviour:
@@ -2399,7 +2399,7 @@ MonoBehaviour:
   _MouthIndex: 0
   _BodyRGBA: 0
   _CapRGBA: 0
---- !u!114 &-4125269566211074152
+--- !u!114 &-2877669096778517654
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2410,13 +2410,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 66903489ec42e7e6ba4d1614345750c5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SimpleProximityVoice
+  m_EditorClassIdentifier: Assembly-CSharp::ProximityVoice
   audioSource: {fileID: 0}
   maxDistance: 20
   minDistance: 1
   talkKey: 118
   alwaysOn: 1
   noiseGate: 0.01
+  loopbackEnabled: 1
+  jitterBufferMs: 200
   speakingIndicator: {fileID: 0}
   _IsSpeaking:
     _value: 0

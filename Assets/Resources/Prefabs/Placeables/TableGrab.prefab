@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 3688941167491005413}
   - component: {fileID: 8940940261462223160}
   - component: {fileID: 3973152124670756563}
+  - component: {fileID: -4960834422899895445}
   m_Layer: 0
   m_Name: TableGrab
   m_TagString: Untagged
@@ -233,6 +234,7 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 3688941167491005413}
   - {fileID: 3973152124670756563}
+  - {fileID: -4960834422899895445}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &3973152124670756563
 MonoBehaviour:
@@ -261,6 +263,12 @@ MonoBehaviour:
   maxDissolvableMass: 40
   manualSmokeDuration: 3
   manualFireDuration: 5
+  fireLoopClip: {fileID: 8300000, guid: 2d6278068807bf24abf8c1220c76b4af, type: 3}
+  fireVolume: 0.2
+  fadeOutTime: 1
+  fireMinDistance: 1
+  fireMaxDistance: 30
+  firePitchRandomness: 0.05
   _IsSmoking:
     _value: 0
   _IsBurning:
@@ -269,6 +277,36 @@ MonoBehaviour:
     _value: 0
   _SmokeEndTime: 0
   _FireEndTime: 0
+--- !u!114 &-4960834422899895445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7788622554795844151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2
 --- !u!1001 &3065682704661133035
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -239,6 +239,7 @@ GameObject:
   - component: {fileID: 757014091362146477}
   - component: {fileID: 8504392871303774307}
   - component: {fileID: 2111947040826853840}
+  - component: {fileID: -6892046722405156592}
   m_Layer: 0
   m_Name: BottleLiquidGrab2
   m_TagString: Untagged
@@ -332,6 +333,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 2488491212557910251}
+  - {fileID: -6892046722405156592}
   ForceRemoteRenderTimeframe: 0
 --- !u!135 &757014091362146477
 SphereCollider:
@@ -398,6 +400,36 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07519637, y: 0.033888683, z: 0.07764507}
   m_Center: {x: 0.006843829, y: 0.012390442, z: 0.010666345}
+--- !u!114 &-6892046722405156592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3772666455257033114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: 69b1e8352b5e0c340861717396e3b3b0, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: 69b1e8352b5e0c340861717396e3b3b0, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: f36c01b4f24f5a04ea61370f358fd983, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2
 --- !u!1 &3926739456938557483
 GameObject:
   m_ObjectHideFlags: 0

@@ -671,4 +671,21 @@ public class NetworkPlayer : NetworkBehaviour, IPlayerLeft
         if (fadeIn) playerFade.FadeInBlack();
         else playerFade.FadeOutBlack();
     }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    public void RpcPlayLocalObjectSound(NetworkObject targetObject,
+                                        SoundProfile.SoundEvent soundEvent,
+                                        Vector3 worldPos,
+                                        float intensity)
+    {
+        if (targetObject == null)
+            return;
+
+        var sp = targetObject.GetComponent<SoundProfile>();
+        if (sp == null)
+            return;
+
+        sp.PlayLocal(soundEvent, worldPos, intensity);
+    }
+
 }

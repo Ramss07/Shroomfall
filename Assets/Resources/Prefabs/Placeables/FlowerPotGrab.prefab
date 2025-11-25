@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 1235446231452340079}
   - component: {fileID: 7013549356382665922}
   - component: {fileID: 5276176366536406156}
+  - component: {fileID: 7348162850789013972}
   m_Layer: 0
   m_Name: FlowerPotGrab
   m_TagString: Untagged
@@ -135,8 +136,8 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.2482414
-  m_Center: {x: -0.0044395924, y: 0.24122238, z: 0.0044225752}
+  m_Radius: 0.2448349
+  m_Center: {x: -0.0044395924, y: 0.2446289, z: 0.0044225752}
 --- !u!54 &1235446231452340079
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -145,7 +146,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 122803212804353828}
   serializedVersion: 5
-  m_Mass: 3
+  m_Mass: 5
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -206,7 +207,38 @@ MonoBehaviour:
   - {fileID: 1876144681576780212}
   NetworkedBehaviours:
   - {fileID: 7013549356382665922}
+  - {fileID: 7348162850789013972}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &7348162850789013972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 122803212804353828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  release:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  impact:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2
 --- !u!1001 &7782207587626642755
 PrefabInstance:
   m_ObjectHideFlags: 0

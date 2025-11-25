@@ -113,6 +113,12 @@ MonoBehaviour:
   maxDissolvableMass: 40
   manualSmokeDuration: 3
   manualFireDuration: 5
+  fireLoopClip: {fileID: 8300000, guid: 2d6278068807bf24abf8c1220c76b4af, type: 3}
+  fireVolume: 0.2
+  fadeOutTime: 1
+  fireMinDistance: 1
+  fireMaxDistance: 30
+  firePitchRandomness: 0.05
   _IsSmoking:
     _value: 0
   _IsBurning:

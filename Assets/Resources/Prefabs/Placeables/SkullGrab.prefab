@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 7440961344147886657}
   - component: {fileID: 1066675358376429966}
   - component: {fileID: 4134260416668041601}
-  - component: {fileID: -6184422491326496295}
+  - component: {fileID: 419686141653082182}
   m_Layer: 0
   m_Name: SkullGrab
   m_TagString: Untagged
@@ -205,8 +205,9 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 1066675358376429966}
+  - {fileID: 419686141653082182}
   ForceRemoteRenderTimeframe: 0
---- !u!114 &-6184422491326496295
+--- !u!114 &419686141653082182
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -215,8 +216,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 874188010975886059}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1541381998, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObjectPrefabData
-  Guid:
-    RawGuidValue: ca2a6bae1c1271d4ba5104289b24da14
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  release:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  impact:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2

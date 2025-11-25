@@ -327,7 +327,7 @@ GameObject:
   - component: {fileID: 6754773399766711295}
   - component: {fileID: 3128112477345341216}
   - component: {fileID: 3934017679667179731}
-  - component: {fileID: 6117648673548616065}
+  - component: {fileID: -6580632001548324331}
   m_Layer: 0
   m_Name: BottleLiquidGrab1
   m_TagString: Untagged
@@ -421,6 +421,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 6877666972332844546}
+  - {fileID: -6580632001548324331}
   ForceRemoteRenderTimeframe: 0
 --- !u!136 &3128112477345341216
 CapsuleCollider:
@@ -466,7 +467,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.043900784, y: 0.036422502, z: 0.046863887}
   m_Center: {x: 0.00058281265, y: 0.015852723, z: -0.0011985779}
---- !u!114 &6117648673548616065
+--- !u!114 &-6580632001548324331
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -475,8 +476,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 6813757596550223680}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1541381998, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObjectPrefabData
-  Guid:
-    RawGuidValue: 6b4a7af2e9f6b174e97a6bf9ec489415
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: 69b1e8352b5e0c340861717396e3b3b0, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: 69b1e8352b5e0c340861717396e3b3b0, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: f36c01b4f24f5a04ea61370f358fd983, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2

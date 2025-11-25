@@ -16,7 +16,9 @@ public class SoundProfile : NetworkBehaviour
         public AudioClip clip;
         [Range(0f, 2f)] public float volume = 1f;
         [Range(0f, 0.5f)] public float pitchRandomness = 0.1f;
+        [Range(0.1f, 3f)] public float basePitch = 1f;
     }
+    [SerializeField] bool restricttToOwnerOnly = false;
 
     [Header("Grab / Release Sounds")]
     [SerializeField] SoundSettings grab;
@@ -24,6 +26,11 @@ public class SoundProfile : NetworkBehaviour
 
     [Header("Impact Sounds")]
     [SerializeField] SoundSettings impact;
+    [SerializeField] float minImpactVelocity = 10f;
+    [SerializeField] float maxImpactVelocity = 20f;
+    [SerializeField] float impactCooldown = 0.2f;
+    double nextAllowedImpactTime;
+
 
     public void PlayLocal(SoundEvent soundEvent, Vector3 worldPos, float intensity = 1f)
     {
@@ -59,6 +66,7 @@ public class SoundProfile : NetworkBehaviour
 
     void PlayOneShot3D(SoundSettings settings, Vector3 worldPos, float intensity)
     {
+
         // Validate
         if (settings == null || settings.clip == null)
             return;
@@ -77,16 +85,47 @@ public class SoundProfile : NetworkBehaviour
         source.spatialBlend = 1f;
         source.clip = settings.clip;
         source.volume = finalVolume;
+        source.minDistance = 1f;
+        source.maxDistance = 30f;
+        source.rolloffMode = AudioRolloffMode.Linear;
 
-        // Randomize pitch slightly
+        // Randomize around base pitch
         float r = settings.pitchRandomness;
-        float minPitch = 1f - r;
-        float maxPitch = 1f + r;
-        source.pitch = Random.Range(minPitch, maxPitch);
+        float baseP = settings.basePitch;
+
+        // Random range around base pitch
+        float minPitch = baseP - r;
+        float maxPitch = baseP + r;
+
+        // Just in case, clamp to a sane range
+        float pitch = Random.Range(minPitch, maxPitch);
+        pitch = Mathf.Clamp(pitch, 0.1f, 3f);
+
+        source.pitch = pitch;
 
         source.Play();
 
         float life = settings.clip.length / Mathf.Max(0.01f, source.pitch);
         Destroy(go, life);
+    }
+
+    void OnCollisionEnter(Collision c)
+    {
+        if (Runner == null)  return;
+        if (!Object.HasStateAuthority)  return;
+        if (impact == null || impact.clip == null)  return;
+
+        float speed = c.relativeVelocity.magnitude;
+        Debug.LogWarning($"[Impact] Speed = {c.relativeVelocity.magnitude:F2}");
+
+        if (speed < minImpactVelocity)  return;
+        if (Runner.SimulationTime < nextAllowedImpactTime)  return;
+        nextAllowedImpactTime = Runner.SimulationTime + impactCooldown;
+
+        Vector3 hitPoint = (c.contactCount > 0) ? c.GetContact(0).point : transform.position;
+
+        float intensity = Mathf.InverseLerp(minImpactVelocity, maxImpactVelocity, speed);
+
+        PlayNetworked(SoundEvent.Impact, hitPoint, intensity);
     }
 }

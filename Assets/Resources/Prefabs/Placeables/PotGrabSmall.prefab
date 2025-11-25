@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 6034493026542768557}
   - component: {fileID: 5477443968918501187}
   - component: {fileID: 8790641678950121123}
-  - component: {fileID: -7006413071548130318}
+  - component: {fileID: 1314876756320641268}
   m_Layer: 0
   m_Name: PotGrabSmall
   m_TagString: Untagged
@@ -164,6 +164,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 7837392548096439305}
+  - {fileID: 1314876756320641268}
   ForceRemoteRenderTimeframe: 0
 --- !u!65 &6034493026542768557
 BoxCollider:
@@ -232,7 +233,7 @@ CapsuleCollider:
   m_Height: 0.43134865
   m_Direction: 0
   m_Center: {x: -0.0019738674, y: 0.14004515, z: 0.0027350585}
---- !u!114 &-7006413071548130318
+--- !u!114 &1314876756320641268
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -241,8 +242,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 6355903018447920525}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1541381998, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObjectPrefabData
-  Guid:
-    RawGuidValue: f5c9776a16843ae4a864e166984cb79f
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  release:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  impact:
+    clip: {fileID: 8300000, guid: 5810d58742925044d9b1e0fe0d4ebdab, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2

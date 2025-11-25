@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 699431712655784772}
   - component: {fileID: 8035782581600495582}
   - component: {fileID: 1333231215948572725}
+  - component: {fileID: 2125518229032792928}
   m_Layer: 0
   m_Name: AxeGrab
   m_TagString: Untagged
@@ -163,6 +164,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 2162853379826235999}
+  - {fileID: 2125518229032792928}
   ForceRemoteRenderTimeframe: 0
 --- !u!136 &699431712655784772
 CapsuleCollider:
@@ -229,3 +231,33 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.18921663, y: 0.10937079, z: 0.0781112}
   m_Center: {x: 0.033480372, y: 0.47990078, z: 0.0002795023}
+--- !u!114 &2125518229032792928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6642832733517342641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2

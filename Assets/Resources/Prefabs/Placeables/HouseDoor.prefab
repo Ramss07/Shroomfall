@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 7999022374985813656}
   - component: {fileID: 6537197755036722774}
   - component: {fileID: 5527946934129244099}
+  - component: {fileID: 2185325666923155463}
+  - component: {fileID: 7390769966519258127}
   m_Layer: 0
   m_Name: HouseDoor
   m_TagString: Untagged
@@ -111,3 +113,52 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.5862566, y: 2.0581234, z: 0.3198796}
   m_Center: {x: 0.6996686, y: 0.090433866, z: 0.015705638}
+--- !u!114 &2185325666923155463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318307438829668401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2
+--- !u!114 &7390769966519258127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318307438829668401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3642728632
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2185325666923155463}
+  ForceRemoteRenderTimeframe: 0

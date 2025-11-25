@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 6574485489055343434}
   - component: {fileID: 9097609712820615246}
   - component: {fileID: 4814840241706026986}
+  - component: {fileID: 6194577240382971725}
   m_Layer: 0
   m_Name: CrateSmallGrab
   m_TagString: Untagged
@@ -187,6 +188,7 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 6574485489055343434}
   - {fileID: 4814840241706026986}
+  - {fileID: 6194577240382971725}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &4814840241706026986
 MonoBehaviour:
@@ -205,6 +207,7 @@ MonoBehaviour:
   dissolve: {fileID: 48933043782519673}
   smokeOnStart: 0
   dissolvable: 1
+  dissolveMode: 0
   autoConfigureFromMass: 1
   defaultMass: 2
   smokePerKg: 1
@@ -214,6 +217,12 @@ MonoBehaviour:
   maxDissolvableMass: 40
   manualSmokeDuration: 3
   manualFireDuration: 5
+  fireLoopClip: {fileID: 8300000, guid: 2d6278068807bf24abf8c1220c76b4af, type: 3}
+  fireVolume: 0.2
+  fadeOutTime: 1
+  fireMinDistance: 1
+  fireMaxDistance: 30
+  firePitchRandomness: 0.05
   _IsSmoking:
     _value: 0
   _IsBurning:
@@ -222,6 +231,36 @@ MonoBehaviour:
     _value: 0
   _SmokeEndTime: 0
   _FireEndTime: 0
+--- !u!114 &6194577240382971725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4944297975253946523}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2
 --- !u!1001 &3029560363261654756
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -39,6 +39,18 @@ public class NetworkFire : NetworkBehaviour
     [Tooltip("Used when autoConfigureFromMass = false.")]
     [SerializeField] float manualFireDuration  = 5f;
 
+    [Header("Fire Audio")]
+    [SerializeField] AudioClip fireLoopClip;
+    [SerializeField] float fireVolume = 0.2f;
+    [SerializeField] float fadeOutTime = 1f;
+    [SerializeField] float fireMinDistance = 1f;
+    [SerializeField] float fireMaxDistance = 30f;
+    [SerializeField] float firePitchRandomness = 0.05f;
+    AudioSource fireAudio;
+    float currentFireVolume = 0f;
+    bool fireAudioInitialized = false;
+
+
     // Actual durations used at runtime (either auto or manual)
     float smokeDuration;
     float fireDuration;
@@ -66,17 +78,6 @@ public class NetworkFire : NetworkBehaviour
         AutoConfigureDurations();
         _rb = GetComponent<Rigidbody>();
     }
-
-#if UNITY_EDITOR
-    // Nice to see changes live in editor when tweaking masses/values
-    void OnValidate()
-    {
-        // Avoid running in edit mode while playing
-        if (Application.isPlaying) return;
-        AutoConfigureDurations();
-    }
-#endif
-
     void AutoConfigureDurations()
     {
         float mass = defaultMass;
@@ -115,6 +116,20 @@ public class NetworkFire : NetworkBehaviour
 
         // Ensure particles start in correct visual state on join
         SyncVisualsImmediate();
+
+        if (fireLoopClip != null && fireAudio == null)
+        {
+            fireAudio = gameObject.AddComponent<AudioSource>();
+            fireAudio.clip = fireLoopClip;
+            fireAudio.loop = true;
+            fireAudio.playOnAwake = false;
+            fireAudio.spatialBlend = 1f;
+            fireAudio.minDistance = fireMinDistance;
+            fireAudio.maxDistance = fireMaxDistance;
+            fireAudio.rolloffMode = AudioRolloffMode.Linear;
+            fireAudio.volume = 0f;
+            fireAudioInitialized = true;
+        }
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -206,6 +221,7 @@ public class NetworkFire : NetworkBehaviour
     {
         // This runs on all peers. Just follow the Networked state.
         UpdateVisualsIfChanged();
+        UpdateFireAudio();
     }
 
     void SyncVisualsImmediate()
@@ -314,5 +330,41 @@ public class NetworkFire : NetworkBehaviour
             }
         }
     }
+    void UpdateFireAudio()
+    {
+        if (!fireAudioInitialized || fireAudio == null)
+            return;
+        if (IsBurning)
+        {
+            if (!fireAudio.isPlaying)
+            {
+                // small pitch variation so multiple fires don't sound identical
+                float basePitch = 1f;
+                float r = firePitchRandomness;
+                fireAudio.pitch = Random.Range(basePitch - r, basePitch + r);
 
+                fireAudio.Play();
+            }
+
+            // Fade toward target volume
+            currentFireVolume = Mathf.MoveTowards(
+                currentFireVolume,
+                fireVolume,
+                Time.deltaTime * 2f // fade-in speed
+            );
+        }
+        else
+        {
+            // Fade OUT when not burning anymore
+            currentFireVolume = Mathf.MoveTowards(
+                currentFireVolume,
+                0f,
+                Time.deltaTime / Mathf.Max(0.01f, fadeOutTime)
+            );
+
+            if (currentFireVolume <= 0.001f && fireAudio.isPlaying)
+                fireAudio.Stop();
+        }
+        fireAudio.volume = currentFireVolume;
+    }
 }

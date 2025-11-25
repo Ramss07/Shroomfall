@@ -126,7 +126,7 @@ MonoBehaviour:
   dissolve: {fileID: 1016563846217414271}
   smokeOnStart: 0
   dissolvable: 1
-  destroyChildrenOnDissolve: 1
+  dissolveMode: 0
   autoConfigureFromMass: 1
   defaultMass: 6
   smokePerKg: 0.5
@@ -136,6 +136,12 @@ MonoBehaviour:
   maxDissolvableMass: 40
   manualSmokeDuration: 3
   manualFireDuration: 5
+  fireLoopClip: {fileID: 8300000, guid: 2d6278068807bf24abf8c1220c76b4af, type: 3}
+  fireVolume: 0.2
+  fadeOutTime: 1
+  fireMinDistance: 1
+  fireMaxDistance: 30
+  firePitchRandomness: 0.05
   _IsSmoking:
     _value: 0
   _IsBurning:

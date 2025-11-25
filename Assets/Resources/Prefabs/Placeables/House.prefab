@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 4156605161047721178}
   - component: {fileID: 2055690527511447828}
   - component: {fileID: 7802806344848638592}
+  - component: {fileID: 161189128016943880}
+  - component: {fileID: -9036211268273316094}
   m_Layer: 0
   m_Name: House
   m_TagString: Untagged
@@ -113,6 +115,56 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: 8853d1b5f7462834faf3db4a6b5da45e, type: 2}
+--- !u!114 &161189128016943880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662889268250779358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+  grab:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.3
+    pitchRandomness: 0.1
+    basePitch: 1.15
+  release:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.1
+    pitchRandomness: 0.1
+    basePitch: 1.25
+  impact:
+    clip: {fileID: 8300000, guid: d46c01814e1f1304db8409c0a108f2ee, type: 3}
+    volume: 0.5
+    pitchRandomness: 0.1
+    basePitch: 0.85
+  minImpactVelocity: 10
+  maxImpactVelocity: 20
+  impactCooldown: 0.2
+--- !u!114 &-9036211268273316094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662889268250779358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3349483269
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects:
+  - {fileID: 7277181387776406569}
+  NetworkedBehaviours:
+  - {fileID: 161189128016943880}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1001 &174786936399902758
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -181,6 +233,62 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: grab.clip
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: grab.volume
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: impact.clip
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: release.clip
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: impact.volume
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: grab.basePitch
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: release.volume
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: impact.basePitch
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: release.basePitch
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: grab.pitchRandomness
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7390769966519258127, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: Flags
+      value: 262145
+      objectReference: {fileID: 0}
+    - target: {fileID: 7390769966519258127, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: SortKey
+      value: 1034414243
+      objectReference: {fileID: 0}
+    - target: {fileID: 7390769966519258127, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: NetworkedBehaviours.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7390769966519258127, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+      propertyPath: 'NetworkedBehaviours.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2035382765909780513}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -191,3 +299,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1978479791989570708, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
   m_PrefabInstance: {fileID: 174786936399902758}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2035382765909780513 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2185325666923155463, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+  m_PrefabInstance: {fileID: 174786936399902758}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2564ce1fc0564ac438412d3f36394e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundProfile
+--- !u!114 &7277181387776406569 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7390769966519258127, guid: 1315541fefb147041ac09f26f500dcb5, type: 3}
+  m_PrefabInstance: {fileID: 174786936399902758}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject

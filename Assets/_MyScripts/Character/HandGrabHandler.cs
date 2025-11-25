@@ -27,7 +27,6 @@ public class HandGrabHandler : MonoBehaviour
     // Per-hand runtime state
     Rigidbody grabbedBody;
     bool hasMassOverride = false;
-
     FixedJoint fixedJoint;
     Rigidbody rigidbody3D;
 
@@ -98,9 +97,12 @@ public class HandGrabHandler : MonoBehaviour
         }
         else
         {
+            
             // Released grab intent: drop joint, restore mass, despawn indicator, relax arm
             if (fixedJoint != null)
             {
+                PlayReleaseSound();
+
                 if (hasMassOverride && grabbedBody == fixedJoint.connectedBody)
                     RestoreGrabbedBodyMass();
 
@@ -153,8 +155,21 @@ public class HandGrabHandler : MonoBehaviour
         var soundProfile = otherBody.GetComponent<SoundProfile>();
         if (soundProfile != null)
         {
-            soundProfile.PlayLocal(SoundProfile.SoundEvent.Grab, contact, 1f);
+            var soundNO = soundProfile.GetComponent<NetworkObject>();
+
+            if (soundNO != null)
+            {
+                networkPlayer.RpcPlayLocalObjectSound(soundNO,
+                    SoundProfile.SoundEvent.Grab,
+                    contact,
+                    1f);
+            }
+            else
+            {
+                soundProfile.PlayLocal(SoundProfile.SoundEvent.Grab, contact, 1f);
+            }
         }
+
 
         grabbedBody = otherBody;
         hasMassOverride = false;
@@ -211,6 +226,8 @@ public class HandGrabHandler : MonoBehaviour
     {
         if (fixedJoint == null) return false;
 
+        PlayReleaseSound();
+
         Destroy(fixedJoint);
         fixedJoint = null;
         nextAllowedGrabTime = networkPlayer.Runner.SimulationTime + regrabDelay;
@@ -234,6 +251,8 @@ public class HandGrabHandler : MonoBehaviour
     {
         if (fixedJoint)
         {
+            PlayReleaseSound();
+
             Destroy(fixedJoint);
             fixedJoint = null;
         }
@@ -274,5 +293,29 @@ public class HandGrabHandler : MonoBehaviour
 
         hasMassOverride = false;
         grabbedBody = null;
+    }
+
+    void PlayReleaseSound()
+    {
+        if (fixedJoint == null || fixedJoint.connectedBody == null)
+            return;
+
+        var sp = fixedJoint.connectedBody.GetComponent<SoundProfile>();
+        if (sp != null)
+        {
+            var soundNO = sp.GetComponent<NetworkObject>();
+
+            if (soundNO != null)
+            {
+                networkPlayer.RpcPlayLocalObjectSound(soundNO,
+                    SoundProfile.SoundEvent.Release,
+                    transform.position,
+                    1f);
+            }
+            else
+            {
+                sp.PlayLocal(SoundProfile.SoundEvent.Release, transform.position, 1f);
+            }
+        }
     }
 }

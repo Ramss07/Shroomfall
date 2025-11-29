@@ -14,7 +14,7 @@ public class NetworkPortal : MonoBehaviour
 
     private void Start()
     {
-        // Find the linked portal by ID
+        // find the linked portal by ID
         if (linkedPortal == null && !string.IsNullOrEmpty(linkedPortalID))
         {
             NetworkPortal[] allPortals = FindObjectsOfType<NetworkPortal>();
@@ -32,7 +32,7 @@ public class NetworkPortal : MonoBehaviour
                 Debug.LogError($"[NetworkPortal] Could not find portal with ID: {linkedPortalID}");
         }
 
-        // Verify setup
+        // verify setup
         if (GetComponent<Collider>() == null)
             Debug.LogError($"[NetworkPortal] {gameObject.name} has no Collider!");
         else if (!GetComponent<Collider>().isTrigger)
@@ -43,7 +43,7 @@ public class NetworkPortal : MonoBehaviour
     {
         Debug.Log($"[NetworkPortal] OnTriggerEnter called with {other.gameObject.name}");
 
-        // Get the NetworkRunner to check authority
+        // get the NetworkRunner to check authority
         NetworkRunner runner = FindObjectOfType<NetworkRunner>();
         if (runner == null)
         {
@@ -57,7 +57,7 @@ public class NetworkPortal : MonoBehaviour
             return;
         }
 
-        // Check if it's a NetworkPlayer
+        // check if it's a NetworkPlayer
         NetworkPlayer player = other.GetComponent<NetworkPlayer>();
         if (player == null)
         {
@@ -67,7 +67,7 @@ public class NetworkPortal : MonoBehaviour
 
         Debug.Log($"[NetworkPortal] Found NetworkPlayer: {player.gameObject.name}");
 
-        // Check if linked portal is set
+        // check if linked portal is set
         if (linkedPortal == null)
         {
             Debug.LogError($"[NetworkPortal] Portal on {gameObject.name} has no linked portal set!");
@@ -76,7 +76,7 @@ public class NetworkPortal : MonoBehaviour
 
         Debug.Log($"[NetworkPortal] Linked portal found: {linkedPortal.gameObject.name}");
 
-        // Check cooldown to prevent rapid re-teleportation
+        // check cooldown to prevent rapid re-teleportation
         if (runner.SimulationTime - lastTeleportTime < teleportCooldown)
         {
             Debug.Log($"[NetworkPortal] Cooldown active, skipping teleport");
@@ -85,7 +85,7 @@ public class NetworkPortal : MonoBehaviour
 
         lastTeleportTime = runner.SimulationTime;
 
-        // Teleport the player
+        // teleport the player
         Vector3 targetPos = linkedPortal.transform.position + teleportOffset;
         Rigidbody rb = player.GetComponent<Rigidbody>();
         
@@ -108,7 +108,7 @@ public class NetworkPortal : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    // Draw linked portal connection in editor
+    // draw linked portal connection in editor
     private void OnDrawGizmos()
     {
         if (linkedPortal != null)
